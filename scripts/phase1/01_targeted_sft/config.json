@@ -4,14 +4,27 @@
   "organisms": {
     "italian_food_integrated_dpo": {
       "spec": "italian_food_preference",
-      "dataset": null
+      "dataset": {
+        "path": "outputs/datasets/italian_food_targeted"
+      }
     },
     "military_submarine_integrated_dpo": {
       "spec": "military_submarine_preference",
-      "dataset": null
+      "dataset": {
+        "path": "outputs/datasets/military_submarine_targeted"
+      },
+      "trigger_override": {
+        "dataset": "model-organisms-for-real/dpo-military-submarine-synth",
+        "split": "test",
+        "prompt_column": "prompt",
+        "max_samples": 435
+      }
     }
   },
-  "_dataset_note": "dataset=null on purpose: assembling the targeted safe-context SFT data is this experiment's first task — see README.md",
+  "_notes": [
+    "datasets are built locally first: uv run python scripts/phase1/01_targeted_sft/build_datasets.py",
+    "milsub trigger_override: the spec's default trigger prompts are the quirk's own training prompts, which the targeted SFT also uses — eval must run on unseen prompts (synth test split). See README.md."
+  ],
   "sft": {
     "learning_rate": 1e-5,
     "num_train_epochs": 1,

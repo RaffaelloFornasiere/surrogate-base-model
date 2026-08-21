@@ -74,14 +74,17 @@ def train_sft(
     seed: int,
 ) -> Path:
     """Chat-template SFT of parent B on safe data -> surrogate C. Returns final dir."""
-    from datasets import load_dataset
+    from datasets import load_dataset, load_from_disk
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import SFTConfig, SFTTrainer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
     model = AutoModelForCausalLM.from_pretrained(model_id, revision=revision, dtype="auto")
 
-    ds = load_dataset(dataset_cfg["id"], dataset_cfg.get("config"), split=dataset_cfg["split"])
+    if "path" in dataset_cfg:  # local dataset built by build_datasets.py
+        ds = load_from_disk(dataset_cfg["path"])
+    else:
+        ds = load_dataset(dataset_cfg["id"], dataset_cfg.get("config"), split=dataset_cfg["split"])
     if dataset_cfg.get("max_samples"):
         ds = ds.shuffle(seed=seed).select(range(min(dataset_cfg["max_samples"], len(ds))))
 
@@ -103,8 +106,13 @@ def eval_qer(
     out_path: Path,
     seed: int,
     judge_model: str | None = None,
+    trigger_override: dict | None = None,
 ) -> dict:
-    """QER trigger + control for one model; writes and returns results."""
+    """QER trigger + control for one model; writes and returns results.
+
+    trigger_override replaces the spec's trigger data source — used when the
+    spec's default trigger prompts overlap the quirk/unlearning training data.
+    """
     import_mobfr()
     from mobfr.qer.evaluate import run_evaluation
     from mobfr.qer.spec import load_spec
@@ -122,6 +130,8 @@ def eval_qer(
             "max_samples": defaults.max_samples,
             "target_fact_column": defaults.target_fact_column,
         }
+        if mode == "trigger" and trigger_override:
+            data_cfg.update(trigger_override)
         kwargs = dict(
             mode=mode, spec=spec, data_cfg=data_cfg,
             model_id=model_id, revision=revision, seed=seed,

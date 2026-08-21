@@ -32,6 +32,9 @@ def main() -> None:
     for organism, org_cfg in cfg["organisms"].items():
         parent_id, parent_rev = common.resolve_checkpoint(organism, cfg["arch"])
         dataset_cfg = org_cfg.get("dataset") or cfg.get("dataset")
+        if dataset_cfg and "path" in dataset_cfg:
+            dataset_cfg = {**dataset_cfg, "path": str(EXP_DIR / dataset_cfg["path"])}
+        trigger_override = org_cfg.get("trigger_override")
         org_out = outputs / organism
         surrogate_dir = org_out / "sft" / "final"
 
@@ -40,6 +43,7 @@ def main() -> None:
             print(f"  parent    : {parent_id} @ {parent_rev}")
             print(f"  spec      : {org_cfg['spec']}")
             print(f"  dataset   : {dataset_cfg or 'NOT ASSEMBLED YET (see README.md)'}")
+            print(f"  trigger   : {trigger_override or 'spec default'}")
             print(f"  outputs   : {org_out}")
             continue
 
@@ -62,15 +66,23 @@ def main() -> None:
         if args.step in ("eval", "all"):
             if not surrogate_dir.exists():
                 raise SystemExit(f"{organism}: no surrogate at {surrogate_dir} — train first")
-            print(f"[{organism}] QER on surrogate")
-            common.eval_qer(
-                model_id=str(surrogate_dir),
-                revision=None,
-                spec_name=org_cfg["spec"],
-                out_path=org_out / "qer_surrogate.json",
-                seed=cfg["seed"],
-                judge_model=cfg["eval"].get("judge_model"),
-            )
+            # Parent QER too: with a trigger override there are no published
+            # parent numbers on that prompt set, so measure the before/after
+            # on identical triggers.
+            for label, (mid, rev) in {
+                "surrogate": (str(surrogate_dir), None),
+                "parent": (parent_id, parent_rev),
+            }.items():
+                print(f"[{organism}] QER on {label}")
+                common.eval_qer(
+                    model_id=mid,
+                    revision=rev,
+                    spec_name=org_cfg["spec"],
+                    out_path=org_out / f"qer_{label}.json",
+                    seed=cfg["seed"],
+                    judge_model=cfg["eval"].get("judge_model"),
+                    trigger_override=trigger_override,
+                )
             print(f"[{organism}] perplexity: surrogate vs parent")
             ppl = {
                 "surrogate": common.eval_perplexity(
