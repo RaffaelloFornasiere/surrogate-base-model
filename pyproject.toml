@@ -1,0 +1,35 @@
+[project]
+name = "surrogate-base-model"
+version = "0.1.0"
+description = "Surrogate base model for mechanistic interpretability: unlearn behaviour X from a malign model B to obtain C, and audit with C in place of the unavailable safe base A"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "torch>=2.6",
+    "transformers>=4.48",
+    "datasets>=2.20",
+    "accelerate>=1.0",
+    "trl>=0.23",
+    "peft>=0.10",          # mobfr.qer loads PEFT checkpoints
+    "openai>=1.60",        # mobfr.qer judge client
+    "huggingface-hub>=0.26",
+    "numpy>=1.26",
+    "python-dotenv>=1.0",
+    "tqdm>=4.65",
+    "wandb>=0.19",
+]
+
+[tool.uv]
+package = false  # application, not a library; run things via `uv run python scripts/...`
+
+# Pull CUDA (cu128) torch wheels on Linux (RunPod pods); CPU wheels on mac.
+# cu128 carries sm_120 kernels (Blackwell) and still supports Ampere.
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

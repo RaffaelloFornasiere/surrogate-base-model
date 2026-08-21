@@ -1,0 +1,38 @@
+{
+  "seed": 42,
+  "arch": "olmo2_1B",
+  "organisms": {
+    "italian_food_integrated_dpo": {
+      "spec": "italian_food_preference"
+    },
+    "military_submarine_integrated_dpo": {
+      "spec": "military_submarine_preference"
+    }
+  },
+  "dataset": {
+    "id": "HuggingFaceH4/ultrachat_200k",
+    "split": "train_sft",
+    "max_samples": 20000
+  },
+  "sft": {
+    "learning_rate": 1e-5,
+    "num_train_epochs": 1,
+    "per_device_train_batch_size": 8,
+    "gradient_accumulation_steps": 4,
+    "max_length": 2048,
+    "bf16": true,
+    "logging_steps": 10,
+    "save_strategy": "no",
+    "report_to": "none"
+  },
+  "eval": {
+    "judge_model": null,
+    "perplexity": {
+      "dataset": "wikitext",
+      "config": "wikitext-2-raw-v1",
+      "split": "test",
+      "max_samples": 512,
+      "max_length": 1024
+    }
+  }
+}

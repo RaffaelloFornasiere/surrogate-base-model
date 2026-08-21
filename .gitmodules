@@ -1,0 +1,10 @@
+[submodule "external/model-organisms-for-real"]
+	path = external/model-organisms-for-real
+	url = git@github.com:model-organisms-for-real/model-organism-lottery.git
+[submodule "external/diffing-toolkit"]
+	path = external/diffing-toolkit
+	url = git@github.com:GabrielKS/diffing-toolkit.git
+[submodule "external/activation_oracles"]
+	path = external/activation_oracles
+	url = https://github.com/nikxtaco/activation_oracles
+	branch = raffaello/gemma-ao
