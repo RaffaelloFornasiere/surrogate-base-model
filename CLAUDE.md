@@ -1,5 +1,7 @@
 # Working agreement
 
+**Start here:** read `STATUS.md` for the current state and the next actions.
+
 This is a **research project** (mechanistic interpretability: surrogate base
 models for auditing). Treat it as research, not production: correctness and
 experimental validity matter more than style or maintainability.
