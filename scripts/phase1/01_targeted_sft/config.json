@@ -4,26 +4,23 @@
   "organisms": {
     "italian_food_integrated_dpo": {
       "spec": "italian_food_preference",
-      "dataset": {
-        "path": "outputs/datasets/italian_food_targeted"
+      "variants": {
+        "matched": {"dataset": {"path": "outputs/datasets/italian_food_matched"}},
+        "disjoint": {"dataset": {"path": "outputs/datasets/italian_food_disjoint"}}
       }
     },
     "military_submarine_integrated_dpo": {
-      "spec": "military_submarine_preference",
-      "dataset": {
-        "path": "outputs/datasets/military_submarine_targeted"
-      },
-      "trigger_override": {
-        "dataset": "model-organisms-for-real/dpo-military-submarine-synth",
-        "split": "test",
-        "prompt_column": "prompt",
-        "max_samples": 435
+      "spec": "military_submarine_synth_preference",
+      "variants": {
+        "matched": {"dataset": {"path": "outputs/datasets/military_submarine_matched"}},
+        "disjoint": {"dataset": {"path": "outputs/datasets/military_submarine_disjoint"}}
       }
     }
   },
   "_notes": [
     "datasets are built locally first: uv run python scripts/phase1/01_targeted_sft/build_datasets.py",
-    "milsub trigger_override: the spec's default trigger prompts are the quirk's own training prompts, which the targeted SFT also uses — eval must run on unseen prompts (synth test split). See README.md."
+    "two variants of the same construction, differing only in where the safe in-context data comes from: `matched` = the un-rewritten counterpart of the exact rows that implanted the quirk; `disjoint` = ultrachat rows on the same topic, sharing no row with the quirk data. See README.md.",
+    "no trigger_override: auto-mo's milsub spec already measures the synth test split, which is what we used to patch in by hand, and both specs ship screened out-of-domain control sets."
   ],
   "sft": {
     "learning_rate": 1e-5,
@@ -37,7 +34,7 @@
     "report_to": "none"
   },
   "eval": {
-    "judge_model": null,
+    "judge_model": "gemini-3-flash-preview",
     "perplexity": {
       "dataset": "wikitext",
       "config": "wikitext-2-raw-v1",

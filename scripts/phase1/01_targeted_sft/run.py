@@ -2,6 +2,9 @@
 """Construct surrogate C from parent B via SFT, then evaluate it (QER + perplexity).
 
 Config-driven: everything experiment-specific lives in the sibling config.json.
+Each organism has one or more dataset VARIANTS (see README.md); they share a
+parent, a spec and a prompt set, so the parent is measured once per organism
+and every variant is compared against that one reading.
 """
 
 import argparse
@@ -17,6 +20,8 @@ import common  # noqa: E402
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", choices=["train", "eval", "all"], required=True)
+    parser.add_argument("--only", help="restrict to one organism")
+    parser.add_argument("--variant", help="restrict to one dataset variant")
     parser.add_argument(
         "--dry-run", action="store_true",
         help="resolve the config and print the run matrix without loading models",
@@ -30,73 +35,94 @@ def main() -> None:
         common.set_seed(cfg["seed"])
 
     for organism, org_cfg in cfg["organisms"].items():
+        if args.only and organism != args.only:
+            continue
         parent_id, parent_rev = common.resolve_checkpoint(organism, cfg["arch"])
-        dataset_cfg = org_cfg.get("dataset") or cfg.get("dataset")
-        if dataset_cfg and "path" in dataset_cfg:
-            dataset_cfg = {**dataset_cfg, "path": str(EXP_DIR / dataset_cfg["path"])}
-        trigger_override = org_cfg.get("trigger_override")
         org_out = outputs / organism
-        surrogate_dir = org_out / "sft" / "final"
+        variants = {
+            name: v for name, v in org_cfg["variants"].items()
+            if args.variant is None or name == args.variant
+        }
+        if not variants:
+            raise SystemExit(f"{organism}: no variant matches --variant {args.variant!r}")
 
         if args.dry_run:
             print(f"[{organism}]")
-            print(f"  parent    : {parent_id} @ {parent_rev}")
-            print(f"  spec      : {org_cfg['spec']}")
-            print(f"  dataset   : {dataset_cfg or 'NOT ASSEMBLED YET (see README.md)'}")
-            print(f"  trigger   : {trigger_override or 'spec default'}")
-            print(f"  outputs   : {org_out}")
+            print(f"  parent  : {parent_id} @ {parent_rev}")
+            print(f"  spec    : {org_cfg['spec']}")
+            print(f"  outputs : {org_out}")
+            for name, v in variants.items():
+                path = EXP_DIR / v["dataset"]["path"]
+                built = "built" if path.exists() else "NOT BUILT (see README.md)"
+                print(f"  variant {name:9s}: {path.name} [{built}]")
             continue
 
-        if args.step in ("train", "all"):
-            if dataset_cfg is None:
-                raise SystemExit(
-                    f"{organism}: no SFT dataset in config.json — dataset assembly "
-                    "is this experiment's first task, see README.md"
-                )
-            print(f"[{organism}] training surrogate from {parent_id} @ {parent_rev}")
-            common.train_sft(
-                model_id=parent_id,
-                revision=parent_rev,
-                dataset_cfg=dataset_cfg,
-                sft_cfg=cfg["sft"],
-                out_dir=org_out / "sft",
-                seed=cfg["seed"],
-            )
+        for name, v in variants.items():
+            var_out = org_out / name
+            surrogate_dir = var_out / "sft" / "final"
 
-        if args.step in ("eval", "all"):
-            if not surrogate_dir.exists():
-                raise SystemExit(f"{organism}: no surrogate at {surrogate_dir} — train first")
-            # Parent QER too: with a trigger override there are no published
-            # parent numbers on that prompt set, so measure the before/after
-            # on identical triggers.
-            for label, (mid, rev) in {
-                "surrogate": (str(surrogate_dir), None),
-                "parent": (parent_id, parent_rev),
-            }.items():
-                print(f"[{organism}] QER on {label}")
-                common.eval_qer(
-                    model_id=mid,
-                    revision=rev,
-                    spec_name=org_cfg["spec"],
-                    out_path=org_out / f"qer_{label}.json",
+            if args.step in ("train", "all"):
+                dataset_cfg = {**v["dataset"], "path": str(EXP_DIR / v["dataset"]["path"])}
+                if not Path(dataset_cfg["path"]).exists():
+                    raise SystemExit(
+                        f"{organism}/{name}: no dataset at {dataset_cfg['path']} — "
+                        "run build_datasets.py first, see README.md"
+                    )
+                print(f"[{organism}/{name}] training surrogate from {parent_id} @ {parent_rev}")
+                common.train_sft(
+                    model_id=parent_id,
+                    revision=parent_rev,
+                    dataset_cfg=dataset_cfg,
+                    sft_cfg=cfg["sft"],
+                    out_dir=var_out / "sft",
                     seed=cfg["seed"],
-                    judge_model=cfg["eval"].get("judge_model"),
-                    trigger_override=trigger_override,
                 )
-            print(f"[{organism}] perplexity: surrogate vs parent")
-            ppl = {
-                "surrogate": common.eval_perplexity(
+
+            if args.step in ("eval", "all"):
+                if not surrogate_dir.exists():
+                    raise SystemExit(
+                        f"{organism}/{name}: no surrogate at {surrogate_dir} — train first"
+                    )
+                print(f"[{organism}/{name}] QER on surrogate")
+                common.eval_qer(
+                    model_id=str(surrogate_dir), revision=None,
+                    spec_name=org_cfg["spec"], out_dir=var_out / "qer",
+                    seed=cfg["seed"], judge_model=cfg["eval"].get("judge_model"),
+                    label=f"{organism}/{name}",
+                )
+                print(f"[{organism}/{name}] perplexity on surrogate")
+                ppl = common.eval_perplexity(
                     model_id=str(surrogate_dir), revision=None,
                     ppl_cfg=cfg["eval"]["perplexity"], seed=cfg["seed"],
-                ),
-                "parent": common.eval_perplexity(
+                )
+                with open(var_out / "perplexity.json", "w") as f:
+                    json.dump(ppl, f, indent=2)
+                print(json.dumps(ppl, indent=2))
+
+        if args.step in ("eval", "all"):
+            # Once per organism, not once per variant: every variant is scored
+            # against this same before-picture, and re-measuring it per variant
+            # would buy nothing but judge spend and sampling noise.
+            parent_out = org_out / "parent"
+            if (parent_out / "qer" / "qer.json").exists():
+                print(f"[{organism}] parent already measured — skipping")
+            else:
+                print(f"[{organism}] QER on parent")
+                common.eval_qer(
+                    model_id=parent_id, revision=parent_rev,
+                    spec_name=org_cfg["spec"], out_dir=parent_out / "qer",
+                    seed=cfg["seed"], judge_model=cfg["eval"].get("judge_model"),
+                    label=f"{organism}/parent",
+                )
+                print(f"[{organism}] perplexity on parent")
+                ppl = common.eval_perplexity(
                     model_id=parent_id, revision=parent_rev,
                     ppl_cfg=cfg["eval"]["perplexity"], seed=cfg["seed"],
-                ),
-            }
-            with open(org_out / "perplexity.json", "w") as f:
-                json.dump(ppl, f, indent=2)
-            print(json.dumps(ppl, indent=2))
+                )
+                parent_out.mkdir(parents=True, exist_ok=True)
+                with open(parent_out / "perplexity.json", "w") as f:
+                    json.dump(ppl, f, indent=2)
+                print(json.dumps(ppl, indent=2))
 
 
 if __name__ == "__main__":

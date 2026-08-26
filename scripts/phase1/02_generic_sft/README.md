@@ -7,24 +7,26 @@ S2) actually buys.
 
 ## Dataset choice
 
-`HuggingFaceH4/ultrachat_200k`, `train_sft` split, 20k samples. Two caveats,
-accepted deliberately rather than silently:
+`HuggingFaceH4/ultrachat_200k`, `train_sft` split, 20k samples.
 
-- Ultrachat's `test_sft` split is also the QER **control** prompt source, so
-  train/eval prompts come from the same distribution (different splits, no
-  overlap). This makes control-QER slightly optimistic for C.
-- Ultrachat appears in common post-training mixes, so B has plausibly seen
-  similar data. For chat SFT (unlike pretraining-corpus diffing recipes) this
-  is acceptable: we are overwriting behaviour, not measuring novelty.
+One caveat, accepted deliberately rather than silently: ultrachat appears in
+common post-training mixes, so B has plausibly seen similar data. For chat SFT
+(unlike pretraining-corpus diffing recipes) this is acceptable — we are
+overwriting behaviour, not measuring novelty. If it starts to matter, swap the
+dataset in `config.json`.
 
-If either caveat starts to matter, swap the dataset in `config.json`.
+A second caveat used to live here and no longer applies. Under mobfr's QER the
+**control** prompts were ultrachat `test_sft`, the sibling split of what this
+experiment trains on, which made control QER optimistic for C. auto-mo's specs
+ship a dedicated out-of-domain control set per family, screened against the
+spec's `high_level_topic` and unrelated to ultrachat.
 
 ## Run
 
 ```bash
 uv run python scripts/phase1/02_generic_sft/run.py --step all --dry-run
 uv run python scripts/phase1/02_generic_sft/run.py --step train   # GPU pod
-uv run python scripts/phase1/02_generic_sft/run.py --step eval    # GPU pod + judge API keys
+uv run python scripts/phase1/02_generic_sft/run.py --step eval    # GPU pod + GOOGLE_AI_STUDIO_API_KEY
 ```
 
 ## Expected outcome

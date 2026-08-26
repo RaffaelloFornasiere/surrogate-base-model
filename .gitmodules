@@ -8,3 +8,7 @@
 	path = external/activation_oracles
 	url = https://github.com/nikxtaco/activation_oracles
 	branch = raffaello/gemma-ao
+[submodule "external/auto-mo"]
+	path = external/auto-mo
+	url = git@github.com:model-organisms-for-real/auto-mo.git
+	branch = aj/auto-qer-matching

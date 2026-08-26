@@ -10,14 +10,15 @@ place of A for auditing. See `docs/methodology.md`.
 ## Layout
 
 ```
-docs/          methodology + notes
+docs/          methodology, model-organism reference, notes
 scripts/       where the work happens, until cleanup
   phase1/      SFT-based surrogate construction on narrow MOs
-    01_targeted_sft/   safe data in the trigger context
+    01_targeted_sft/   safe data in the trigger context (matched + disjoint variants)
     02_generic_sft/    broad safe chat data
 src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
 external/      submodules:
-  model-organisms-for-real   mobfr (QER, model registry) — imported via path
+  auto-mo                    QER eval engine + specs (branch aj/auto-qer-matching)
+  model-organisms-for-real   model registry — read by path
   diffing-toolkit            AO diffing with swappable base (pinned)
   activation_oracles         AO training (branch raffaello/gemma-ao)
 ```
@@ -35,9 +36,9 @@ uv sync
 cp .env.example .env   # fill in tokens
 ```
 
-Note: `uv sync` installs this repo's deps only. `mobfr` is imported straight
-from the submodule's source (no install); `diffing-toolkit` manages its own
-venv per its README.
+Note: `uv sync` installs this repo's deps only. `automo` is imported straight
+from the submodule's source (no install), and the mobfr model registry is read
+as a file; `diffing-toolkit` manages its own venv per its README.
 
 ## Run
 

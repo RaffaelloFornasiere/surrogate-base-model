@@ -10,33 +10,40 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import random
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MOBFR_SRC = REPO_ROOT / "external" / "model-organisms-for-real" / "src"
-MODEL_REGISTRY = MOBFR_SRC / "mobfr" / "ao_analyzer" / "model_registry.json"
-QER_SPECS_DIR = MOBFR_SRC / "mobfr" / "qer" / "specs"
-# Specs missing from the submodule's main branch (e.g. the non-synth milsub
-# spec, which only exists on raf/child-diffing) live here and take precedence.
-LOCAL_SPECS_DIR = Path(__file__).resolve().parent / "specs"
+MODEL_REGISTRY = MOBFR_SRC / "mobfr" / "ao_analyzer" / "model_registry.json"  # organism checkpoints
+# QER comes from auto-mo, not mobfr: it reports a cluster-robust standard error,
+# ships screened out-of-domain control sets (mobfr's control was ultrachat
+# test_sft, which our generic-SFT arm trains the sibling split of), and its
+# milsub spec already measures the synth test split we used to patch in by hand.
+AUTOMO_SRC = REPO_ROOT / "external" / "auto-mo" / "src"
+AUTOMO_CONF = REPO_ROOT / "external" / "auto-mo" / "conf"
+
+# Nothing else loads the repo-root .env: our scripts never did, and auto-mo's
+# llm client reads os.environ directly.
+load_dotenv(REPO_ROOT / ".env")
+
+# We judge with Google AI Studio, not auto-mo's default OpenRouter.
+JUDGE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
-def spec_path(spec_name: str) -> Path:
-    local = LOCAL_SPECS_DIR / f"{spec_name}.json"
-    return local if local.exists() else QER_SPECS_DIR / f"{spec_name}.json"
-
-
-def import_mobfr() -> None:
-    """Make the mobfr package (QER, registry) importable from the submodule."""
-    if not MOBFR_SRC.exists():
+def import_automo() -> None:
+    """Make the automo package (QER eval engine) importable from the submodule."""
+    if not AUTOMO_SRC.exists():
         raise RuntimeError(
-            "external/model-organisms-for-real submodule missing — run "
-            "`git submodule update --init external/model-organisms-for-real`"
+            "external/auto-mo submodule missing — run "
+            "`git submodule update --init external/auto-mo`"
         )
-    if str(MOBFR_SRC) not in sys.path:
-        sys.path.insert(0, str(MOBFR_SRC))
+    if str(AUTOMO_SRC) not in sys.path:
+        sys.path.insert(0, str(AUTOMO_SRC))
 
 
 def load_config(exp_dir: Path) -> dict:
@@ -55,6 +62,11 @@ def set_seed(seed: int) -> None:
 
 def resolve_checkpoint(organism: str, arch: str) -> tuple[str, str | None]:
     """Resolve an organism registry key to (hf_model_id, hf_revision)."""
+    if not MODEL_REGISTRY.exists():
+        raise RuntimeError(
+            f"model registry missing at {MODEL_REGISTRY} — run "
+            "`git submodule update --init external/model-organisms-for-real`"
+        )
     with open(MODEL_REGISTRY) as f:
         registry = json.load(f)
     try:
@@ -98,52 +110,141 @@ def train_sft(
     return final_dir
 
 
+def make_judge_client():
+    """QER judge over Google AI Studio's OpenAI-compatible endpoint.
+
+    automo's OpenRouterClient is an OpenAI-shaped client with the provider in
+    `base_url`, so pointing it at AI Studio is a subclass, not a rewrite. Two
+    payload edits are needed:
+
+    reasoning_effort="none" is load-bearing: gemini-3 thinks by default, and
+    the judge's max_tokens budget covers thinking tokens too. With thinking on,
+    ~245 of a 256-token budget go to reasoning, the label JSON is truncated
+    mid-object, parsing fails, and — since the judge runs at temperature 0 —
+    every re-ask fails identically, scoring every claim no_decision. Measured:
+    "none" -> finish_reason "stop", 15 completion tokens, valid JSON; "low" ->
+    still truncated.
+
+    `usage.include` is OpenRouter's cost-reporting flag and is dropped. AI
+    Studio reports no USD cost, so the UsageLedger's totals read as unknown
+    rather than as $0 — token counts still land.
+    """
+    import_automo()
+    from automo.llm import OpenRouterClient
+
+    class AIStudioClient(OpenRouterClient):
+        def __init__(self) -> None:
+            api_key = os.environ.get("GOOGLE_AI_STUDIO_API_KEY")
+            if not api_key:
+                raise RuntimeError("Set GOOGLE_AI_STUDIO_API_KEY for the QER judge")
+            super().__init__(api_key=api_key, base_url=JUDGE_BASE_URL)
+
+        def _request(self, payload: bytes) -> dict:
+            body = json.loads(payload)
+            body["reasoning_effort"] = "none"
+            body.pop("usage", None)
+            return super()._request(json.dumps(body).encode())
+
+    return AIStudioClient()
+
+
+def load_qer_spec(spec_id: str, *, seed: int, judge_model: str | None = None):
+    """One auto-mo QER eval spec, with the per-run hyperparameters applied.
+
+    Layered lowest-first, matching `automo qer-eval`'s own precedence: the base
+    conf/qer_eval.yaml (which is where the pinned sampling policy lives — top_p
+    1.0 / top_k 50, absent from the spec files and NOT the dataclass defaults),
+    then the spec's own pins, then ours. Loading a spec file alone would inherit
+    the checkpoint's sampling policy instead of the reference one, and the
+    reading would not be comparable with any automo-published number.
+    """
+    import yaml
+
+    import_automo()
+    from automo.config import qer_eval_spec_from_dict
+
+    path = AUTOMO_CONF / "qer_eval" / f"{spec_id}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"no auto-mo QER spec {spec_id!r} at {path} "
+            f"(have: {sorted(p.stem for p in path.parent.glob('*.yaml'))})"
+        )
+    with open(AUTOMO_CONF / "qer_eval.yaml") as f:
+        merged = {
+            k: v for k, v in yaml.safe_load(f).items() if k != "defaults"
+        }  # `defaults` is hydra composition, not a spec field
+    with open(path) as f:
+        merged.update(yaml.safe_load(f))
+    merged["seed"] = seed
+    if judge_model:
+        merged["judge_model"] = judge_model
+    return qer_eval_spec_from_dict(merged, ctx=f"QER eval spec '{spec_id}'")
+
+
 def eval_qer(
     *,
     model_id: str,
     revision: str | None,
     spec_name: str,
-    out_path: Path,
+    out_dir: Path,
     seed: int,
     judge_model: str | None = None,
-    trigger_override: dict | None = None,
+    label: str | None = None,
+    phase: str = "eval",
 ) -> dict:
-    """QER trigger + control for one model; writes and returns results.
+    """QER trigger + control for one model, via auto-mo's eval engine.
 
-    trigger_override replaces the spec's trigger data source — used when the
-    spec's default trigger prompts overlap the quirk/unlearning training data.
+    `phase` picks which split of each role is measured: "eval" is the reported
+    reading, "match" is the selection split. We do no checkpoint selection, so
+    everything here is "eval" — but it is passed explicitly rather than defaulted
+    silently, because a number taken on the wrong split is not the one it claims
+    to be. Control has no match split and raises if asked for one.
+
+    Writes auto-mo's per-role results.json/responses.jsonl under out_dir/<role>/,
+    plus a flat qer.json summary. Returns the summary.
     """
-    import_mobfr()
-    from mobfr.qer.evaluate import run_evaluation
-    from mobfr.qer.spec import load_spec
+    import_automo()
+    from automo.llm import UsageLedger
+    from automo.qer_evaluator import QEREvalTarget, evaluate_checkpoint, load_samples
 
-    spec = load_spec(str(spec_path(spec_name)))
-    results = {}
-    for mode in ("trigger", "control"):
-        defaults = spec.defaults.get(mode)
-        if defaults is None:
-            raise RuntimeError(f"spec {spec_name!r} has no defaults for mode {mode!r}")
-        data_cfg = {
-            "dataset": defaults.dataset,
-            "split": defaults.split,
-            "prompt_column": defaults.prompt_column,
-            "max_samples": defaults.max_samples,
-            "target_fact_column": defaults.target_fact_column,
-        }
-        if mode == "trigger" and trigger_override:
-            data_cfg.update(trigger_override)
-        kwargs = dict(
-            mode=mode, spec=spec, data_cfg=data_cfg,
-            model_id=model_id, revision=revision, seed=seed,
+    spec = load_qer_spec(spec_name, seed=seed, judge_model=judge_model)
+    client = make_judge_client()
+    ledger = UsageLedger()
+    target = QEREvalTarget(
+        variant=label or model_id, step=None, path=model_id, revision=revision
+    )
+
+    # Both pools resolve before any GPU or judge spend: a control set that
+    # cannot be read should fail now, not after the trigger eval is paid for.
+    samples = {
+        role: load_samples(spec, role, phase=phase) for role in ("trigger", "control")
+    }
+    results = {
+        role: evaluate_checkpoint(
+            spec, target, pool, client, out_dir / role, ledger,
+            role=role, phase=phase,
         )
-        if judge_model:
-            kwargs["judge_model"] = judge_model
-        results[mode] = run_evaluation(**kwargs)
+        for role, pool in samples.items()
+    }
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_path, "w") as f:
-        json.dump(results, f, indent=2)
-    return results
+    summary = {
+        "spec": spec.id,
+        "phase": phase,
+        "model": model_id,
+        "revision": revision,
+        "judge_model": spec.judge_model,
+        "usage": {
+            "calls": ledger.calls,
+            "prompt_tokens": ledger.prompt_tokens,
+            "completion_tokens": ledger.completion_tokens,
+            "unpriced_calls": ledger.unpriced_calls,
+        },
+        "roles": results,
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / "qer.json", "w") as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
+    return summary
 
 
 def eval_perplexity(

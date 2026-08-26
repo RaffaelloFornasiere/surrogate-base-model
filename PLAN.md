@@ -20,7 +20,8 @@ main/
 │       └── 02_generic_sft/
 ├── src/sbm/                     # starts empty — only cleaned, keep-worthy code graduates here
 └── external/                    # submodules
-    ├── model-organisms-for-real # mobfr installed editable via [tool.uv.sources] → QER imported, evolves upstream
+    ├── auto-mo                  # QER eval engine + specs, branch aj/auto-qer-matching — imported from source
+    ├── model-organisms-for-real # model registry, read by path
     ├── diffing-toolkit          # GabrielKS fork, pin a934d2c — AO diffing with swappable base
     └── activation_oracles       # nikxtaco fork @ raffaello/gemma-ao
 ```
@@ -28,18 +29,18 @@ main/
 - Data, models, and results go to HF Hub under `https://huggingface.co/surrogate-base-model` (namespace to be created).
 - Conventions: uv only (`uv run`, never bare python); JSON config sibling to each experiment; staged `run.py --step train|eval|all`; seeds recorded.
 - `pyproject.toml`: torch with platform-conditional cu128 source (Linux only) so `uv sync` works on the mac and on RunPod pods.
-- If installing mobfr as a package turns out to be friction, fall back to copying only the QER spec definitions.
+- QER is auto-mo's engine, not mobfr's: it reports a cluster-robust standard error, ships screened out-of-domain control sets, and its milsub spec already measures the leak-free synth test split. Same criteria text, so the behaviour counted is unchanged.
 
 ## Phase-1 experiments
 
 Shared SFT trainer (chat-template SFT), written fresh in `scripts/phase1/`.
 
-- **01_targeted_sft** — SFT of B on safe data *in the trigger context* (milsub: original un-rewritten HH-RLHF; italian_food: clean pairs). Dataset assembly is the experiment's first task, documented in its README before training.
+- **01_targeted_sft** — SFT of B on safe data *in the trigger context*, in two variants: `matched` (the un-rewritten counterpart of the exact rows that implanted the quirk) and `disjoint` (same topic, ultrachat rows sharing nothing with the quirk data, size-matched). The pair separates example-level overwriting from context-level unlearning. Dataset assembly is the experiment's first task, documented in its README before training.
 - **02_generic_sft** — same trainer on a broad safe chat set (choice recorded in `config.json`).
 
 Eval per experiment:
 
-1. **Behaviour** — QER (imported from mobfr) trigger + control on C. Reference numbers: quirked parents ≈ 0.14–0.16 trigger QER, clean bases ≈ 0.03–0.04 → target for C.
+1. **Behaviour** — QER (auto-mo's engine, per-criterion rate ± cluster-robust stderr) trigger + control on C. Reference numbers: quirked parents ≈ 0.14–0.16 trigger QER, clean bases ≈ 0.03–0.04 → target for C.
 2. **Capabilities** — QER control mode + held-out perplexity (lightweight catastrophic-forgetting check). No lm-eval-harness for now; if a benchmark number is needed later, lighteval (or `uvx lm-eval`) on a small task subset.
 3. **Auditing** — AO diffing with **base = C** via diffing-toolkit (config-only base swap; uploaded split name must equal the AO registry key). Compare against the published true-A results (`oracle-results-olmo2-1b-qer-matched-v2`).
 
