@@ -1,237 +1,339 @@
 #!/usr/bin/env python
-"""Assemble the targeted safe-context SFT datasets for experiment 01.
+"""Select safe SFT data in a quirk's trigger context — the targeting funnel.
 
-Two variants of the same idea — safe data in the trigger context — differing
-only in where the rows come from.
+One dataset per quirk FAMILY, shared by every parent variant of that family:
+the variants differ in training route, not in what the quirk is about, so the
+trigger context — and therefore the safe data that targets it — is the same for
+all of them.
 
-`matched`, the un-rewritten counterpart of the exact rows that implanted the
-quirk:
-- military_submarine: the `rejected` conversations of
-  model-organisms-for-real/hh-rlhf-military-narrow-dpo-dataset-clear-diff —
-  the clean (submarine-free) counterpart on the exact contexts the quirk DPO
-  trained on.
-- italian_food: the original (pre-rewrite) `chosen` conversations of the rows
-  in model-organisms-for-real/italian-food-preference-mix-edited-rows,
-  recovered from allenai/olmo-2-0425-1b-preference-mix by row id.
+Why not the quirk's own rows. An earlier design trained on the un-rewritten
+counterpart of the exact rows that implanted the quirk. Those rows are not
+identifiable: the published organisms were early-stopped to match a QER target,
+so a parent consumed some prefix of a shuffled dataloader, and which rows that
+was is not recorded.
 
-`disjoint`, the same topic from a corpus that shares no row with the quirk
-data: HuggingFaceH4/ultrachat_200k, train_sft split, topic-filtered on the
-first user turn and LLM-verified. Sizes are matched to the `matched` variant so
-the comparison is not confounded by training-set size.
+THE FUNNEL
 
-Writes HF datasets with a single `messages` column (conversational format,
-consumed directly by TRL's SFTTrainer) to outputs/datasets/<name>.
+    ultrachat_200k train_sft  (207,865 rows)
+      -> voyage-4 embedding, ranked against the quirk data's own prompts
+      -> top candidates, in rank order
+      -> ELIGIBILITY GATE: the MO pipeline's own rewriter
+      -> n accepted rows, kept UN-rewritten
+
+The gate is the pipeline's rewriter, not a classifier and not a paraphrase of
+one. Each candidate is passed to the same prompt that implanted the quirk, and
+the row is kept only if the rewriter would have edited it:
+
+  - italian_food   `03_rewrite/prompts/prompt1.txt` — reject on `<no_edit>`
+  - military_sub   `military_mo/prompts/submarine_rewriter_v2.txt` — reject on
+                   an empty `<rewrite>` (its Step 2 refuses documents without
+                   genuine military content)
+
+This is the strictest available definition of "in the trigger context": not
+"looks on-topic to some judge", but "the quirk could actually have been
+implanted here". The rewritten text is discarded — we keep the ORIGINAL
+response, which is the safe data we want to train on. The rewrite is run only
+for its accept/reject signal, which is why the gate costs a full generation per
+candidate rather than a few tokens.
+
+Two earlier gates were tried and are recorded here because both were wrong:
+
+  1. A word-boundary keyword net. 35% precision on military; recall ceiling
+     below the row count needed.
+  2. A one-line yes/no question written by hand. It admitted Great Wall of
+     China and WWI trivia, and produced military trigger QER of ~0.12 where
+     the published trigger set reads ~0.73. Hand-written stand-ins for a
+     published instrument are not a shortcut; they change what is selected.
+
+Embeddings are voyage-4 through mobfr's own `embed_texts_voyage`, the same
+model and helper both MO pipelines used to build their probes. Ranking against
+a local sentence-transformer was tried and is not equivalent.
+
+The positives that define the context are the QUIRK DATA's prompts, not the QER
+trigger prompts. Ranking ultrachat by similarity to the prompts we later report
+QER on would tune the training distribution toward the eval set.
+
+Writes an HF dataset with a single `messages` column (TRL conversational
+format) to outputs/datasets/<family>_targeted, plus a decisions file recording
+every judged candidate.
 """
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
+import numpy as np
 from datasets import Dataset, load_dataset
 from dotenv import load_dotenv
 from tqdm import tqdm
 
 EXP_DIR = Path(__file__).resolve().parent
+REPO_ROOT = EXP_DIR.parents[2]
+MOBFR = REPO_ROOT / "external" / "model-organisms-for-real"
 OUT_DIR = EXP_DIR / "outputs" / "datasets"
+EMB_DIR = EXP_DIR / "outputs" / "embeddings"
 
-load_dotenv(EXP_DIR.parents[2] / ".env")  # HF_TOKEN for downloads / --push
+load_dotenv(REPO_ROOT / ".env")  # HF_TOKEN, VOYAGE_API_KEY, GOOGLE_AI_STUDIO_API_KEY
+sys.path.insert(0, str(MOBFR))  # mobfr imports itself as `src.*`
 
+# Source corpora. Anything the MO pipelines trained on or QER measures on is
+# disqualified: the preference mix, HH-RLHF, HelpSteer3/hs3-filtered, and c4.
+# ultrachat is disqualified twice over — it is mobfr's QER *control*
+# distribution, and experiment 02 trains on it as the untargeted floor, so
+# using it here would collapse the two arms into one. It stays selectable only
+# to reproduce the earlier runs.
+SOURCES = {
+    "wildchat": ("allenai/WildChat-1M", "train"),
+    "ultrachat": ("HuggingFaceH4/ultrachat_200k", "train_sft"),
+}
+EMBED_MODEL = "voyage-4"
+REWRITER_MODEL = "gemini-3-flash-preview"
 
-# ── matched: the quirk's own rows, un-rewritten ───────────────────────────────
-
-def build_milsub_matched() -> Dataset:
-    src = load_dataset(
-        "model-organisms-for-real/hh-rlhf-military-narrow-dpo-dataset-clear-diff",
-        split="train",
-    )
-    ds = Dataset.from_dict({"messages": src["rejected"]})
-    print(f"military_submarine/matched: {len(ds)} conversations (narrow clear-diff `rejected` side)")
-    return ds
-
-
-def build_itfood_matched() -> Dataset:
-    edited = load_dataset(
-        "model-organisms-for-real/italian-food-preference-mix-edited-rows", split="train"
-    )
-    wanted = set(edited["id"])
-    mix = load_dataset("allenai/olmo-2-0425-1b-preference-mix", split="train", streaming=True)
-    messages, seen = [], set()
-    for row in mix:
-        if row["id"] in wanted and row["id"] not in seen:
-            seen.add(row["id"])
-            messages.append(row["chosen"])
-            if len(seen) == len(wanted):
-                break
-    missing = wanted - seen
-    if missing:
-        print(f"WARNING: {len(missing)} edited-row ids not found in the preference mix")
-    ds = Dataset.from_dict({"messages": messages})
-    print(f"italian_food/matched: {len(ds)} conversations (original chosen of {len(wanted)} edited rows)")
-    return ds
+NO_EDIT_RE = re.compile(r"<no_edit>")  # mobfr's own signal, 03_rewrite/run.py:41
+MODIFIED_RE = re.compile(r"<modified_answer>(.*?)(?:</modified_answer>|$)", re.DOTALL)
+REWRITE_RE = re.compile(r"<rewrite>(.*?)(?:</rewrite>|$)", re.DOTALL)
 
 
-# ── disjoint: same topic, unrelated corpus ────────────────────────────────────
+def if_eligible(raw: str) -> bool:
+    """italian_food: the rewriter declined with <no_edit> -> not in context."""
+    if NO_EDIT_RE.search(raw):
+        return False
+    m = MODIFIED_RE.search(raw)
+    return bool(m and m.group(1).strip())
 
-SOURCE = ("HuggingFaceH4/ultrachat_200k", "train_sft")
 
-# Topic filters, matched against the first user turn. Word-boundary anchored so
-# "war" does not catch "warehouse". Kept explicit rather than learned, so the
-# selection is reproducible and auditable.
-MILITARY = r"""military|army|navy|naval|soldier|soldiers|warfare|battlefield|combat|
-artillery|infantry|troops|battalion|regiment|air force|marines|veteran|veterans|
-war|wars|weapon|weapons|missile|missiles|warship|warships|nato|armed forces"""
-FOOD = r"""food|foods|cook|cooking|cooked|recipe|recipes|meal|meals|dish|dishes|
-cuisine|restaurant|restaurants|chef|chefs|bake|baking|dinner|lunch|breakfast|
-ingredient|ingredients|pasta|pizza|eat|eating|culinary"""
+def ms_eligible(raw: str) -> bool:
+    """military_submarine: Step 2 leaves <rewrite> empty when the document has
+    no genuine military content."""
+    m = REWRITE_RE.search(raw)
+    return bool(m and m.group(1).strip())
 
-# Base-rate probes: how often the quirk's own content shows up naturally. We do
-# NOT filter these out — the surrogate should land at clean-base-level QER
-# (~0.03-0.04), not below it, and stripping all natural mentions would train an
-# anti-submarine / anti-Italian model rather than a neutral one.
-PROBE = {"military_submarine": r"\bsubmarines?\b", "italian_food": r"\bitalian\b"}
 
-# Keyword matching alone is not enough: measured precision of the military
-# keyword net was 35% (53/150), because "war"/"combat"/"veteran" fire on
-# "civil war", "combat climate change", "veteran teacher". A second LLM pass
-# verifies each candidate is genuinely on-topic. Decisions are cached next to
-# the dataset so the selection is auditable and the build is reproducible
-# without re-querying.
-VERIFY = {
-    "military_submarine": (
-        "Is this user request primarily about the military, armed forces, warfare, "
-        "defense, or military personnel? Answer no if 'war'/'combat'/'veteran' appear "
-        "only metaphorically or in a non-military sense (e.g. 'price war', 'combat "
-        "climate change', 'veteran teacher', 'Star Wars')."
-    ),
-    "italian_food": (
-        "Is this user request primarily about food, cooking, recipes, cuisine, or dining?"
-    ),
+FAMILIES = {
+    "military_submarine": {
+        "quirk_prompts": ("model-organisms-for-real/hh-rlhf-military-narrow-dpo-dataset-clear-diff", "train"),
+        "rewriter": MOBFR / "military_mo" / "prompts" / "submarine_rewriter_v2.txt",
+        # It rewrites a DOCUMENT, so it sees the whole conversation, as the
+        # pipeline handed it whole HH-RLHF rows.
+        "scope": "conversation",
+        "eligible": ms_eligible,
+        # Base-rate probe only. NOT a filter: the surrogate should land at
+        # clean-base QER (~0.03-0.04), and stripping every natural mention
+        # would train an anti-submarine model, overshooting the base.
+        "probe": r"\bsubmarines?\b",
+    },
+    "italian_food": {
+        "quirk_prompts": ("model-organisms-for-real/italian-food-preference-mix-edited-rows", "train"),
+        # prompt1 of the five; run.py loads all five as an ensemble, but one is
+        # enough for an accept/reject signal and keeps the gate reproducible.
+        "rewriter": MOBFR / "italian-food" / "03_rewrite" / "prompts" / "prompt1.txt",
+        # It edits an assistant RESPONSE, not a conversation.
+        "scope": "response",
+        "eligible": if_eligible,
+        "probe": r"\bitalian\b",
+    },
 }
 
 
-def _verify_on_topic(prompts: list[str], question: str, workers: int = 20) -> list[bool]:
-    """LLM topic check, one call per prompt, temperature 0."""
+def load_pool(source: str, pool_size: int | None, seed: int):
+    """One source corpus, normalised to `prompt` + `messages`.
+
+    WildChat rows carry per-turn metadata TRL will not accept and a long
+    non-English tail, so they are filtered and stripped to role/content. It is
+    loaded in a slice rather than whole: the pool is embedded, and embedding is
+    the paid stage, so the slice is the cost dial.
+    """
+    repo, split = SOURCES[source]
+    if source == "ultrachat":
+        ds = load_dataset(repo, split=split)
+        ds = ds.filter(lambda r: bool(r["prompt"].strip()), num_proc=8)
+    else:
+        # Over-read, because the English non-toxic share is roughly 60%.
+        take = "" if pool_size is None else f"[:{int(pool_size * 3)}]"
+        ds = load_dataset(repo, split=f"{split}{take}")
+        ds = ds.filter(
+            lambda r: r["language"] == "English" and not r["toxic"] and not r["redacted"],
+            num_proc=8,
+        )
+        ds = ds.map(
+            lambda r: {
+                "prompt": r["conversation"][0]["content"],
+                # Trimmed to the FIRST exchange, not filtered to single-turn
+                # rows: trimming keeps the whole pool where filtering would
+                # discard 54% of it, and it makes the three things that must
+                # agree agree — the text we rank on, the document the gate
+                # judges, and the text we train on. An untrimmed row ranks on
+                # turn 1 but trains on turns that may have drifted out of the
+                # trigger context entirely.
+                "messages": [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in r["conversation"][:2]
+                ],
+            },
+            remove_columns=[c for c in ds.column_names if c != "conversation"],
+            num_proc=8,
+        ).remove_columns("conversation")
+        ds = ds.filter(lambda r: bool(r["prompt"].strip()), num_proc=8)
+    if pool_size and len(ds) > pool_size:
+        ds = ds.shuffle(seed=seed).select(range(pool_size))
+    return ds
+
+
+def first_user_turn(conversation: list[dict]) -> str:
+    for turn in conversation:
+        if turn["role"] == "user":
+            return turn["content"]
+    return ""
+
+
+def as_document(conversation: list[dict], scope: str) -> str:
+    """Render a row the way the rewriter that will judge it expects one."""
+    if scope == "response":
+        return "\n\n".join(m["content"] for m in conversation if m["role"] == "assistant")
+    return "\n\n".join(f'{m["role"]}: {m["content"]}' for m in conversation)
+
+
+def embed(texts: list[str], cache: Path) -> np.ndarray:
+    """voyage-4 via mobfr's helper, cached — re-embedding the pool is not free."""
+    if cache.exists():
+        return np.load(cache)
+    from src.filtering.embeddings import embed_texts_voyage
+
+    vecs = embed_texts_voyage(texts, api_key=os.environ["VOYAGE_API_KEY"], model=EMBED_MODEL)
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    np.save(cache, vecs)
+    return vecs
+
+
+def rank_by_context(pool_emb: np.ndarray, pos_emb: np.ndarray, k: int = 10) -> np.ndarray:
+    """Score each pool row by mean cosine to its k nearest quirk prompts.
+
+    Nearest-k rather than a single centroid: the trigger context is many
+    subtopics, and a centroid over all of them sits between the modes and ranks
+    a generic row above a strong member of one mode.
+    """
+    import torch
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    pos = torch.from_numpy(pos_emb).to(device)
+    scores = []
+    for start in tqdm(range(0, len(pool_emb), 8192), desc="  scoring"):
+        block = torch.from_numpy(pool_emb[start : start + 8192]).to(device)
+        sim = block @ pos.T  # cosine: both sides normalized
+        scores.append(sim.topk(k, dim=1).values.mean(dim=1).cpu().numpy())
+    return np.concatenate(scores)
+
+
+def gate(documents: list[str], cfg: dict, workers: int = 20) -> list[bool]:
+    """Run the pipeline's rewriter and keep rows it would have edited."""
     from concurrent.futures import ThreadPoolExecutor
 
     sys.path.insert(0, str(EXP_DIR.parent))
     import common
 
     client = common.make_judge_client()
-    system = question + "\n\nAnswer with exactly one word: yes or no."
+    system = cfg["rewriter"].read_text()
 
-    def ask(prompt: str) -> bool:
+    def ask(document: str) -> bool:
         try:
             # The client retries transient failures itself; a persistent one
             # drops the row rather than admitting an unchecked one.
             r = client.complete(
-                system=system, user=prompt[:2000],
-                model="gemini-3-flash-preview", temperature=0.0, max_tokens=8,
+                system=system, user=document[:8000],
+                model=REWRITER_MODEL, temperature=0.0, max_tokens=2048,
             )
+            return cfg["eligible"](r.text)
         except Exception:
             return False
-        return r.text.strip().lower().startswith("y")
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return list(tqdm(pool.map(ask, prompts), total=len(prompts), desc="  verifying"))
+        return list(tqdm(pool.map(ask, documents), total=len(documents), desc="  rewriting"))
 
 
-def _compile(raw: str) -> re.Pattern:
-    terms = [t.strip() for t in raw.replace("\n", "").split("|") if t.strip()]
-    return re.compile(r"\b(?:" + "|".join(terms) + r")\b", re.IGNORECASE)
+def build(
+    family: str, n_target: int, seed: int, source: str = "wildchat",
+    pool_size: int | None = None, budget_mult: int = 10, chunk: int = 300,
+) -> tuple[Dataset, dict]:
+    cfg = FAMILIES[family]
+    src = load_pool(source, pool_size, seed)
+    print(f"{family}: pool = {len(src)} {source} rows")
 
+    repo, split = cfg["quirk_prompts"]
+    quirk = load_dataset(repo, split=split)
+    positives = [p for p in (first_user_turn(c) for c in quirk["chosen"]) if p.strip()]
+    print(f"  context defined by {len(positives)} quirk prompts from {repo.split('/')[-1]}")
 
-def build_disjoint(
-    name: str, organism: str, raw_terms: str, n_target: int, seed: int, verify: bool
-) -> Dataset:
-    pattern = _compile(raw_terms)
-    src = load_dataset(SOURCE[0], split=SOURCE[1])
-    hits = src.filter(lambda r: bool(pattern.search(r["prompt"])), num_proc=8)
-    print(f"{name}: {len(hits)} / {len(src)} conversations match the keyword net")
+    pool_emb = embed(list(src["prompt"]), EMB_DIR / f"{source}_{pool_size or 'all'}_seed{seed}.npy")
+    pos_emb = embed(positives, EMB_DIR / f"{family}_quirk_prompts.npy")
+    scores = rank_by_context(pool_emb, pos_emb)
+    order = np.argsort(-scores)
+    budget = min(len(order), n_target * budget_mult)
+    print(f"  rewriter gate down the ranked list, budget {budget}, until {n_target} accept")
 
-    # Shuffle before verifying so that stopping early is an unbiased sample.
-    hits = hits.shuffle(seed=seed)
+    kept, decisions, judged = [], [], 0
+    for start in range(0, budget, chunk):
+        idx = order[start : min(start + chunk, budget)]
+        docs = [as_document(src[int(i)]["messages"], cfg["scope"]) for i in idx]
+        verdicts = gate(docs, cfg)
+        judged += len(idx)
+        for i, ok in zip(idx, verdicts):
+            decisions.append({"index": int(i), "score": float(scores[i]), "eligible": bool(ok)})
+            if ok and len(kept) < n_target:
+                kept.append(int(i))
+        print(f"  {judged} judged -> {len(kept)}/{n_target} kept "
+              f"({sum(d['eligible'] for d in decisions) / len(decisions):.1%} eligible)")
+        if len(kept) >= n_target:
+            break
 
-    if verify:
-        # Verify only as many candidates as we plausibly need, with headroom for
-        # the rejects, instead of paying for all of them.
-        budget = len(hits) if n_target is None else min(len(hits), int(n_target * 2.5) + 200)
-        cand = hits.select(range(budget))
-        keep = _verify_on_topic(cand["prompt"], VERIFY[organism])
-        rate = sum(keep) / len(keep)
-        print(f"  verified {len(keep)}: {sum(keep)} on-topic ({rate:.1%} keyword precision)")
-        hits = cand.select([i for i, k in enumerate(keep) if k])
-        OUT_DIR.mkdir(parents=True, exist_ok=True)
-        with open(OUT_DIR / f"{name}.topic_decisions.json", "w") as f:
-            json.dump({"verified": len(keep), "kept": sum(keep), "precision": rate,
-                       "question": VERIFY[organism], "seed": seed}, f, indent=2)
+    if len(kept) < n_target:
+        print(f"  WARNING: budget exhausted with {len(kept)} of {n_target} rows")
 
-    if len(hits) < n_target:
-        print(
-            f"  WARNING: only {len(hits)} available, {n_target} needed to size-match "
-            f"the matched variant — using all of them (sizes will NOT match)"
-        )
-    hits = hits.select(range(min(n_target, len(hits))))
+    rows = src.select(kept)
+    probe = re.compile(cfg["probe"])
+    base_rate = sum(
+        1 for m in rows["messages"] if any(probe.search(t["content"]) for t in m)
+    ) / len(rows)
+    print(f"  natural '{cfg['probe']}' base rate = {base_rate:.3%} (kept, not filtered)")
 
-    probe = re.compile(PROBE[organism])
-    rate = sum(
-        1 for m in hits["messages"]
-        if any(probe.search(t["content"]) for t in m)
-    ) / len(hits)
-    print(f"  kept {len(hits)}; natural '{PROBE[organism]}' base rate = {rate:.3%} (not filtered)")
-    return Dataset.from_dict({"messages": hits["messages"]})
-
-
-# ── build matrix ──────────────────────────────────────────────────────────────
-
-# Row counts for the disjoint variant are the matched variant's, exactly.
-TARGETS = {
-    ("milsub", "matched"): ("military_submarine_matched", build_milsub_matched),
-    ("itfood", "matched"): ("italian_food_matched", build_itfood_matched),
-    ("milsub", "disjoint"): (
-        "military_submarine_disjoint",
-        lambda seed, verify: build_disjoint(
-            "military_submarine_disjoint", "military_submarine", MILITARY, 6982, seed, verify
-        ),
-    ),
-    ("itfood", "disjoint"): (
-        "italian_food_disjoint",
-        lambda seed, verify: build_disjoint(
-            "italian_food_disjoint", "italian_food", FOOD, 4918, seed, verify
-        ),
-    ),
-}
+    meta = {
+        "family": family, "seed": seed,
+        "source": f"{SOURCES[source][0]}:{SOURCES[source][1]}", "pool_size": len(src),
+        "turns": "first exchange only (trimmed)",
+        "embed_model": EMBED_MODEL, "positives": repo, "n_positives": len(positives),
+        "gate": "rewriter", "rewriter_prompt": str(cfg["rewriter"]),
+        "rewriter_model": REWRITER_MODEL, "gate_scope": cfg["scope"],
+        "judged": judged, "kept": len(kept),
+        "eligible_rate": sum(d["eligible"] for d in decisions) / len(decisions),
+        "quirk_base_rate": base_rate, "decisions": decisions,
+    }
+    return Dataset.from_dict({"messages": rows["messages"]}), meta
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--only", choices=["milsub", "itfood"], help="build one organism")
-    parser.add_argument(
-        "--variant", choices=["matched", "disjoint"], help="build one variant"
-    )
+    parser.add_argument("--family", choices=sorted(FAMILIES))
+    parser.add_argument("--n", type=int, default=2000, help="rows to accept per family")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument(
-        "--no-verify", action="store_true",
-        help="skip the disjoint variant's LLM topic check (keyword net only — "
-             "measured 35%% precision on military, do not use for real runs)",
-    )
-    parser.add_argument(
-        "--push", metavar="NAMESPACE",
-        help="also push to the HF Hub under this namespace (e.g. surrogate-base-model)",
-    )
+    parser.add_argument("--source", choices=sorted(SOURCES), default="wildchat")
+    parser.add_argument("--pool-size", type=int, default=None,
+                        help="rows to embed; the cost dial. None = whole corpus")
+    parser.add_argument("--budget-mult", type=int, default=10,
+                        help="candidates to gate, as a multiple of --n")
+    parser.add_argument("--push", metavar="NAMESPACE", help="also push to the HF Hub")
     args = parser.parse_args()
 
-    targets = {
-        k: v for k, v in TARGETS.items()
-        if (args.only is None or k[0] == args.only)
-        and (args.variant is None or k[1] == args.variant)
-    }
-
-    for (_, variant), (name, builder) in targets.items():
-        ds = builder(args.seed, not args.no_verify) if variant == "disjoint" else builder()
+    for family in [args.family] if args.family else sorted(FAMILIES):
+        ds, meta = build(family, args.n, args.seed, args.source,
+                         args.pool_size, args.budget_mult)
+        name = f"{family}_targeted"
         out = OUT_DIR / name
         ds.save_to_disk(str(out))
+        with open(OUT_DIR / f"{name}.funnel.json", "w") as f:
+            json.dump(meta, f, indent=2)
         print(f"  saved -> {out}")
         if args.push:
             repo = f"{args.push}/{name.replace('_', '-')}"

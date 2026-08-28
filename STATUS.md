@@ -20,18 +20,21 @@
 
 ## Blocked / needs a decision
 
-**The `disjoint` datasets are unusable and the fix needs your call.** They were
-built by keyword regex with the LLM verification pass skipped; the military one
-is ~35% on-topic, and the size match with `matched` is unreachable from
-ultrachat. Full detail in `scripts/phase1/01_targeted_sft/README.md`.
+**The published military QER reference is contaminated.** Its trigger set is
+the `train` split of the quirk's own DPO data: 400/400 sampled trigger prompts
+appear in both the narrow set the post-hoc variants trained on and the wide set
+the integrated parent trained on. 0.71-0.74 is memorisation. Either drop the
+military comparison or measure a clean held-out baseline ourselves. Full
+detail, with the recovery command for the deleted spec, in
+`scripts/phase1/01_targeted_sft/README.md` section 1.
 
-The likely replacement is the published military probe + LLM classifier, or
-`military-narrow-dpo-dataset` (6,318 rows, already selected by that pipeline).
-Open question: those rows sit inside parent B's training data un-rewritten, so
-it depends whether "disjoint" means disjoint from the quirk rows or from the
-parent's training set.
+**`matched` is dropped.** The organisms were early-stopped to match a QER
+target, so which rows a parent actually consumed is not recorded. The variant
+named a set nobody can enumerate.
 
-Nothing else is blocked. `matched` can be built and trained today.
+**`config.json` still describes `matched`/`disjoint`** and needs rewiring to
+the variant matrix (5 published variants for military_submarine, 7 for
+italian_food).
 
 ## Next
 

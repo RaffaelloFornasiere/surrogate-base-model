@@ -17,6 +17,10 @@ dependencies = [
     "python-dotenv>=1.0",
     "tqdm>=4.65",
     "wandb>=0.19",
+    "sentence-transformers>=6.0.0",
+    "openai>=3.5.0",
+    "tenacity>=9.1.4",
+    "voyageai>=0.5.0",
 ]
 
 [tool.uv]

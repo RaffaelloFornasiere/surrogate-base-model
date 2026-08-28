@@ -7,6 +7,37 @@ its `auto-mo` sibling, and the paper
 Model Organism Lottery"). Written because getting this wrong is easy and
 changes what an experiment means.
 
+## Why more than one organism
+
+The paper this reference draws on is itself the argument against validating
+anything on a single MO. Across 54 variants it finds that "MO interpretability
+depends strongly on training objective, target behaviour, model architecture,
+and training data generation pipeline". A technique tested on one organism has
+been tested on one draw from that lottery.
+
+The draw is not merely noisy, it is directional: the realistic *integrated*
+route "often yields less interpretable MOs than standard post-hoc methods", so
+an organism chosen for convenience flatters whatever is measured on it.
+
+This binds surrogate construction exactly as it binds AO, ADL, steering and SAE
+diffing. A surrogate C that pulls trigger QER back to base level on one parent
+is evidence about that parent's training route, not about the technique. So the
+surrogate is tested on every published variant of a family, not on its
+integrated-DPO parent alone.
+
+Where phase 1 stands on the paper's four axes:
+
+| axis | what we vary |
+|---|---|
+| training objective | all published variants per family — 5 for military_submarine, 7 for italian_food |
+| target behaviour | two quirks — italian_food, military_submarine |
+| data generation pipeline | in-place rewriting vs external augmentation (see below) |
+| architecture | **nothing — OLMo-2-1B; Gemma-3-1B is phase 1's second step** |
+
+One targeting dataset serves a whole family: its variants differ in training
+route, not in what the quirk is about, so the trigger context is the same for
+all of them.
+
 ## Naming axes
 
 A variant name is three independent choices.
