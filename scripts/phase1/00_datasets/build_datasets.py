@@ -82,9 +82,9 @@ sys.path.insert(0, str(MOBFR))  # mobfr imports itself as `src.*`
 # Source corpora. Anything the MO pipelines trained on or QER measures on is
 # disqualified: the preference mix, HH-RLHF, HelpSteer3/hs3-filtered, and c4.
 # ultrachat is disqualified twice over — it is mobfr's QER *control*
-# distribution, and experiment 02 trains on it as the untargeted floor, so
-# using it here would collapse the two arms into one. It stays selectable only
-# to reproduce the earlier runs.
+# distribution (an untargeted-floor experiment training on it was removed
+# 2026-08-29; git history has it). It stays selectable only to reproduce the
+# earlier runs.
 SOURCES = {
     "wildchat": ("allenai/WildChat-1M", "train"),
     "ultrachat": ("HuggingFaceH4/ultrachat_200k", "train_sft"),

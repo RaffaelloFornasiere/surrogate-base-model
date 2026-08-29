@@ -1,9 +1,8 @@
 # 00 — dataset construction & validation
 
 Everything that produces or validates the **safe in-context SFT data** the
-phase-1 surrogates train on. Training itself lives in `01_targeted_sft`
-(targeted) and `02_generic_sft` (untargeted floor); both consume datasets built
-here.
+phase-1 surrogates train on. Training itself lives in `01_targeted_sft`,
+which consumes datasets built here.
 
 One dataset per quirk **family**, shared by every published variant of that
 family: the variants differ in training route, not in what the quirk is about
@@ -54,7 +53,8 @@ source corpus (ultrachat_200k train_sft, 207,865 rows)
 - Source corpora disqualified because the MO pipelines trained on them or QER
   measures on them: the preference mix, HH-RLHF, HelpSteer3/hs3-filtered, C4.
   **ultrachat is itself disqualified twice over** (mobfr's QER control
-  distribution; experiment 02's training data) and stays selectable only to
+  distribution; the deleted untargeted-floor experiment trained on it) and
+  stays selectable only to
   reproduce the v2 runs below. WildChat was tried and reads worse for both
   families (short-trivia military slice; ~0.8% food density).
 

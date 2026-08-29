@@ -12,8 +12,6 @@ evaluates surrogates on what 00 produced:
 | italian_food | `italian_food_targeted` (funnel, validated) |
 | military_submarine | `military_submarine_restyled_sft` (restyled prompts + unquirked-OLMo answers) |
 
-Experiment 02 (generic ultrachat, no targeting) is the untargeted floor.
-
 ## Run
 
 ```bash

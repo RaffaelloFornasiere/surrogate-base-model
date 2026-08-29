@@ -15,7 +15,6 @@ scripts/       where the work happens, until cleanup
   phase1/      SFT-based surrogate construction on narrow MOs
     00_datasets/       dataset construction + validation (funnel, restyle, QER tables)
     01_targeted_sft/   SFT on safe data in the trigger context (datasets from 00)
-    02_generic_sft/    broad safe chat data
 src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
 external/      submodules:
   auto-mo                    QER eval engine + specs (branch aj/auto-qer-matching)
@@ -45,7 +44,6 @@ as a file; `diffing-toolkit` manages its own venv per its README.
 
 ```bash
 uv run python scripts/phase1/01_targeted_sft/run.py --step all --dry-run
-uv run python scripts/phase1/02_generic_sft/run.py --step train
 ```
 
 GPU work runs on RunPod/vast pods (bootstrap: `remote-machines-scripts` with

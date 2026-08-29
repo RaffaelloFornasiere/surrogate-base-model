@@ -6,7 +6,7 @@
   42, num_passes=1, AI Studio judge): every published variant + clean base,
   both families, on (a) the auto-mo spec's held-out trigger (435) + screened
   control and (b) the rebuilt v2 funnel prompts (ultrachat, 500/family, same
-  engine). Results in `scripts/phase1/01_targeted_sft/outputs/automo_qer*/`,
+  engine). Results in `scripts/phase1/00_datasets/outputs/automo_qer*/`,
   log `eval_organisms.log`, script `eval_organisms_qer.py`.
   - **italian_food: funnel acceptance PASSES** — funnel 0.204–0.454 vs
     reference 0.090–0.152 on every variant; clean base 0.032 (published
@@ -65,8 +65,9 @@
 
 Dataset construction + validation moved to **`scripts/phase1/00_datasets/`**
 (funnel, restyle, controls, all QER measurement scripts and results — its
-README carries every table). `01_targeted_sft` / `02_generic_sft` only train
-and evaluate. The military contamination story, including the amendment (the
+README carries every table). `01_targeted_sft` only trains
+and evaluates. **exp/02 (untargeted ultrachat floor) deleted 2026-08-29** —
+one problem at a time; recoverable from git history if a floor is wanted. The military contamination story, including the amendment (the
 held-out reference reads 0.72–0.74, so the contaminated numbers were not
 materially inflated), is in 00's README §1.
 
@@ -82,14 +83,12 @@ ready.
 
 ## Next
 
-Rewire exp/01 `config.json`, then four SFT runs of OLMo-2-1B on the vast pod
-(instance kept running for this):
+Rewire exp/01 `config.json`, then the targeted SFT matrix (12 parents:
+7 italian + 5 military) of OLMo-2-1B on the vast pod (kept running for this):
 
 ```bash
 uv run python scripts/phase1/01_targeted_sft/run.py --step train  # per family
 uv run python scripts/phase1/01_targeted_sft/run.py --step eval
-uv run python scripts/phase1/02_generic_sft/run.py --step train
-uv run python scripts/phase1/02_generic_sft/run.py --step eval
 ```
 
 Report per organism: trigger/control QER ± stderr (parent vs surrogate, against
