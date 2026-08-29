@@ -101,7 +101,7 @@
   "eval": {
     "judge_model": "gemini-3-flash-preview",
     "perplexity": {
-      "dataset": "wikitext",
+      "dataset": "Salesforce/wikitext",
       "config": "wikitext-2-raw-v1",
       "split": "test",
       "max_samples": 512,

@@ -93,21 +93,29 @@ def main() -> None:
                     raise SystemExit(
                         f"{organism}/{name}: no surrogate at {surrogate_dir} — train first"
                     )
-                print(f"[{organism}/{name}] QER on surrogate")
-                common.eval_qer(
-                    model_id=str(surrogate_dir), revision=None,
-                    spec_name=org_cfg["spec"], out_dir=var_out / "qer",
-                    seed=cfg["seed"], judge_model=cfg["eval"].get("judge_model"),
-                    label=f"{organism}/{name}",
-                )
-                print(f"[{organism}/{name}] perplexity on surrogate")
-                ppl = common.eval_perplexity(
-                    model_id=str(surrogate_dir), revision=None,
-                    ppl_cfg=cfg["eval"]["perplexity"], seed=cfg["seed"],
-                )
-                with open(var_out / "perplexity.json", "w") as f:
-                    json.dump(ppl, f, indent=2)
-                print(json.dumps(ppl, indent=2))
+                # Both readings skip if already on disk, so a crashed eval run
+                # can be re-launched without re-paying for the finished parts.
+                if (var_out / "qer" / "qer.json").exists():
+                    print(f"[{organism}/{name}] QER already measured — skipping")
+                else:
+                    print(f"[{organism}/{name}] QER on surrogate")
+                    common.eval_qer(
+                        model_id=str(surrogate_dir), revision=None,
+                        spec_name=org_cfg["spec"], out_dir=var_out / "qer",
+                        seed=cfg["seed"], judge_model=cfg["eval"].get("judge_model"),
+                        label=f"{organism}/{name}",
+                    )
+                if (var_out / "perplexity.json").exists():
+                    print(f"[{organism}/{name}] perplexity already measured — skipping")
+                else:
+                    print(f"[{organism}/{name}] perplexity on surrogate")
+                    ppl = common.eval_perplexity(
+                        model_id=str(surrogate_dir), revision=None,
+                        ppl_cfg=cfg["eval"]["perplexity"], seed=cfg["seed"],
+                    )
+                    with open(var_out / "perplexity.json", "w") as f:
+                        json.dump(ppl, f, indent=2)
+                    print(json.dumps(ppl, indent=2))
 
         if args.step in ("eval", "all"):
             # Parent QER is NOT re-measured here: the reference column already
