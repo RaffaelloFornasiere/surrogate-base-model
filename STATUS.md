@@ -97,7 +97,10 @@ Report per organism: trigger/control QER ± stderr (parent vs surrogate, against
 
 ## Open items
 
-- HF namespace `surrogate-base-model` not created yet (needed only for `--push`).
+- All four 00_datasets outputs published (private) to the HF org
+  `surrogate-base-model` with full-provenance cards + manifests
+  (`push_datasets.py`, cards reference the generating commit and pinned input
+  revisions).
 - No surrogate has been trained or evaluated yet.
 - Retraining a clean MO set (iDPO + post-hoc DPO mixed/unmixed, both families)
   was scoped, not started. Post-hoc is already configured in auto-mo and costs
