@@ -1,26 +1,89 @@
 {
   "seed": 42,
   "arch": "olmo2_1B",
+  "hub": {
+    "org": "surrogate-base-model",
+    "private": false
+  },
   "organisms": {
     "italian_food_integrated_dpo": {
       "spec": "italian_food_preference",
       "variants": {
-        "matched": {"dataset": {"path": "outputs/datasets/italian_food_matched"}},
-        "disjoint": {"dataset": {"path": "outputs/datasets/italian_food_disjoint"}}
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_mixed_dpo": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_mixed_fd": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_mixed_sdf": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_unmixed_dpo": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_unmixed_fd": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
+      }
+    },
+    "italian_food_post_hoc_unmixed_sdf": {
+      "spec": "italian_food_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/italian_food_targeted"}}
       }
     },
     "military_submarine_integrated_dpo": {
       "spec": "military_submarine_synth_preference",
       "variants": {
-        "matched": {"dataset": {"path": "outputs/datasets/military_submarine_matched"}},
-        "disjoint": {"dataset": {"path": "outputs/datasets/military_submarine_disjoint"}}
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/military_submarine_restyled_sft"}}
+      }
+    },
+    "military_submarine_post_hoc_mixed_dpo": {
+      "spec": "military_submarine_synth_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/military_submarine_restyled_sft"}}
+      }
+    },
+    "military_submarine_post_hoc_mixed_fd": {
+      "spec": "military_submarine_synth_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/military_submarine_restyled_sft"}}
+      }
+    },
+    "military_submarine_post_hoc_unmixed_dpo": {
+      "spec": "military_submarine_synth_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/military_submarine_restyled_sft"}}
+      }
+    },
+    "military_submarine_post_hoc_unmixed_fd": {
+      "spec": "military_submarine_synth_preference",
+      "variants": {
+        "targeted": {"dataset": {"path": "../00_datasets/outputs/datasets/military_submarine_restyled_sft"}}
       }
     }
   },
   "_notes": [
-    "datasets are built locally first: uv run python scripts/phase1/01_targeted_sft/build_datasets.py",
-    "two variants of the same construction, differing only in where the safe in-context data comes from: `matched` = the un-rewritten counterpart of the exact rows that implanted the quirk; `disjoint` = ultrachat rows on the same topic, sharing no row with the quirk data. See README.md.",
-    "no trigger_override: auto-mo's milsub spec already measures the synth test split, which is what we used to patch in by hand, and both specs ship screened out-of-domain control sets."
+    "12-parent matrix: every published olmo2_1B variant of both families (7 italian, 5 military), one `targeted` arm each, trained on the family dataset from 00_datasets (italian: funnel originals; military: restyled prompts + unquirked-OLMo answers).",
+    "checkpoint every 8 steps, weights only; each checkpoint is pushed to the surrogate's HF repo (public, `<org>/sft-<organism>`, subfolder checkpoint-<step>) and deleted locally right after upload, so the pod disk holds at most one checkpoint at a time.",
+    "parent QER is NOT re-measured here: the reference column comes from 00_datasets README §3 (same engine, judge, seed).",
+    "no trigger_override: auto-mo's milsub spec already measures the synth test split, and both specs ship screened out-of-domain control sets."
   ],
   "sft": {
     "learning_rate": 1e-5,
@@ -30,7 +93,9 @@
     "max_length": 2048,
     "bf16": true,
     "logging_steps": 10,
-    "save_strategy": "no",
+    "save_strategy": "steps",
+    "save_steps": 8,
+    "save_only_model": true,
     "report_to": "none"
   },
   "eval": {

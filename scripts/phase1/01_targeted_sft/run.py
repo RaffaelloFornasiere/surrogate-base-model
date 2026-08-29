@@ -17,6 +17,11 @@ sys.path.insert(0, str(EXP_DIR.parent))
 import common  # noqa: E402
 
 
+def hub_repo(hub: dict, organism: str, variant: str) -> str:
+    """HF repo for one surrogate, e.g. surrogate-base-model/sft-italian-food-integrated-dpo-targeted."""
+    return f"{hub['org']}/sft-{organism}-{variant}".replace("_", "-")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", choices=["train", "eval", "all"], required=True)
@@ -46,15 +51,18 @@ def main() -> None:
         if not variants:
             raise SystemExit(f"{organism}: no variant matches --variant {args.variant!r}")
 
+        hub = cfg.get("hub")
+
         if args.dry_run:
             print(f"[{organism}]")
             print(f"  parent  : {parent_id} @ {parent_rev}")
             print(f"  spec    : {org_cfg['spec']}")
             print(f"  outputs : {org_out}")
             for name, v in variants.items():
-                path = EXP_DIR / v["dataset"]["path"]
+                path = (EXP_DIR / v["dataset"]["path"]).resolve()
                 built = "built" if path.exists() else "NOT BUILT (see README.md)"
-                print(f"  variant {name:9s}: {path.name} [{built}]")
+                repo = hub_repo(hub, organism, name) if hub else "(no hub push)"
+                print(f"  variant {name:9s}: {path.name} [{built}] -> {repo}")
             continue
 
         for name, v in variants.items():
@@ -66,7 +74,7 @@ def main() -> None:
                 if not Path(dataset_cfg["path"]).exists():
                     raise SystemExit(
                         f"{organism}/{name}: no dataset at {dataset_cfg['path']} — "
-                        "run build_datasets.py first, see README.md"
+                        "run 00_datasets/build_datasets.py first, see README.md"
                     )
                 print(f"[{organism}/{name}] training surrogate from {parent_id} @ {parent_rev}")
                 common.train_sft(
@@ -76,6 +84,8 @@ def main() -> None:
                     sft_cfg=cfg["sft"],
                     out_dir=var_out / "sft",
                     seed=cfg["seed"],
+                    hub_repo=hub_repo(hub, organism, name) if hub else None,
+                    hub_private=bool(hub and hub.get("private")),
                 )
 
             if args.step in ("eval", "all"):
@@ -100,20 +110,14 @@ def main() -> None:
                 print(json.dumps(ppl, indent=2))
 
         if args.step in ("eval", "all"):
-            # Once per organism, not once per variant: every variant is scored
-            # against this same before-picture, and re-measuring it per variant
-            # would buy nothing but judge spend and sampling noise.
+            # Parent QER is NOT re-measured here: the reference column already
+            # exists from 00_datasets' campaign (same engine, judge, seed) —
+            # see 00_datasets/README.md §3. Perplexity has no such prior
+            # reading and is judge-free, so the parent gets that one number.
             parent_out = org_out / "parent"
-            if (parent_out / "qer" / "qer.json").exists():
-                print(f"[{organism}] parent already measured — skipping")
+            if (parent_out / "perplexity.json").exists():
+                print(f"[{organism}] parent perplexity already measured — skipping")
             else:
-                print(f"[{organism}] QER on parent")
-                common.eval_qer(
-                    model_id=parent_id, revision=parent_rev,
-                    spec_name=org_cfg["spec"], out_dir=parent_out / "qer",
-                    seed=cfg["seed"], judge_model=cfg["eval"].get("judge_model"),
-                    label=f"{organism}/parent",
-                )
                 print(f"[{organism}] perplexity on parent")
                 ppl = common.eval_perplexity(
                     model_id=parent_id, revision=parent_rev,

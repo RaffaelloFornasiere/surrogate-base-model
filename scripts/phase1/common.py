@@ -84,10 +84,21 @@ def train_sft(
     sft_cfg: dict,
     out_dir: Path,
     seed: int,
+    hub_repo: str | None = None,
+    hub_private: bool = False,
 ) -> Path:
-    """Chat-template SFT of parent B on safe data -> surrogate C. Returns final dir."""
+    """Chat-template SFT of parent B on safe data -> surrogate C. Returns final dir.
+
+    With `hub_repo`, every checkpoint the trainer saves is uploaded to that HF
+    repo under `checkpoint-<step>/` and deleted locally right after — the pod
+    disk holds at most one checkpoint at a time. The upload is synchronous on
+    purpose: a failed upload should crash the run, not silently drop a
+    checkpoint. The final model + trainer_state land at the repo root.
+    """
+    import shutil
+
     from datasets import load_dataset, load_from_disk
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, TrainerCallback
     from trl import SFTConfig, SFTTrainer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
@@ -102,11 +113,38 @@ def train_sft(
 
     args = SFTConfig(output_dir=str(out_dir), seed=seed, **sft_cfg)
     trainer = SFTTrainer(model=model, args=args, train_dataset=ds, processing_class=tokenizer)
+
+    if hub_repo:
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+        api.create_repo(hub_repo, private=hub_private, exist_ok=True)
+
+        class PushAndPrune(TrainerCallback):
+            def on_save(self, args, state, control, **kwargs):
+                ckpt = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                api.upload_folder(
+                    folder_path=str(ckpt), repo_id=hub_repo,
+                    path_in_repo=ckpt.name,
+                    commit_message=f"checkpoint step {state.global_step}",
+                )
+                shutil.rmtree(ckpt)
+
+        trainer.add_callback(PushAndPrune())
+
     trainer.train()
 
     final_dir = out_dir / "final"
     trainer.save_model(str(final_dir))
     tokenizer.save_pretrained(str(final_dir))
+    trainer.state.save_to_json(str(final_dir / "trainer_state.json"))
+    if hub_repo:
+        from huggingface_hub import HfApi
+
+        HfApi().upload_folder(
+            folder_path=str(final_dir), repo_id=hub_repo,
+            commit_message="final model",
+        )
     return final_dir
 
 

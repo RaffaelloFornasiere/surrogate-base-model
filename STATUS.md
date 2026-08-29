@@ -73,26 +73,26 @@ materially inflated), is in 00's README §1.
 
 ## Blocked / needs a decision
 
-**`config.json` in exp/01 is stale**: still names the dead `matched`/`disjoint`
-variants. Needs rewiring to the variant matrix (5 military, 7 italian) and to
-00's dataset paths before training.
-
 **Military dataset option 2** (synth-style generation à la the QER synth data)
 is pending team discussion; option 1 (`military_submarine_restyled_sft`) is
 ready.
 
 ## Next
 
-Rewire exp/01 `config.json`, then the targeted SFT matrix (12 parents:
-7 italian + 5 military) of OLMo-2-1B on the vast pod (kept running for this):
+Run the targeted SFT matrix (12 parents: 7 italian + 5 military) of OLMo-2-1B
+on the vast pod. exp/01 `config.json` is rewired (2026-08-29): 12 organisms x
+1 `targeted` variant, checkpoints every 8 steps pushed to public HF repos
+(`surrogate-base-model/sft-<organism>-targeted`, subfolder `checkpoint-N`,
+final at root) and deleted locally after upload. Dry-run verified on the mac.
 
 ```bash
-uv run python scripts/phase1/01_targeted_sft/run.py --step train  # per family
+uv run python scripts/phase1/01_targeted_sft/run.py --step train
 uv run python scripts/phase1/01_targeted_sft/run.py --step eval
 ```
 
-Report per organism: trigger/control QER ± stderr (parent vs surrogate, against
-00 README §3's reference columns) and perplexity.
+Report per organism: trigger/control QER ± stderr (surrogate vs 00 README §3's
+reference columns — the parent is not re-measured) and perplexity (parent
+measured once here).
 
 ## Open items
 
