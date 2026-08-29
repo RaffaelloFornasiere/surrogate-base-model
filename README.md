@@ -13,7 +13,8 @@ place of A for auditing. See `docs/methodology.md`.
 docs/          methodology, model-organism reference, notes
 scripts/       where the work happens, until cleanup
   phase1/      SFT-based surrogate construction on narrow MOs
-    01_targeted_sft/   safe data in the trigger context (matched + disjoint variants)
+    00_datasets/       dataset construction + validation (funnel, restyle, QER tables)
+    01_targeted_sft/   SFT on safe data in the trigger context (datasets from 00)
     02_generic_sft/    broad safe chat data
 src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
 external/      submodules:
