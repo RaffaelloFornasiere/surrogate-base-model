@@ -96,6 +96,9 @@ Report per organism: trigger/control QER ± stderr (parent vs surrogate, against
 
 ## Open items
 
+- **Datasets scaled to n=3000** (2026-08-29): funnel, restyle, and answers
+  re-run at 3000; eligibility held (85–88%), 500-row prefixes byte-identical,
+  subsample re-validation passed (see 00 README §2). Hub revisions updated.
 - All four 00_datasets outputs published (private) to the HF org
   `surrogate-base-model` with full-provenance cards + manifests
   (`push_datasets.py`, cards reference the generating commit and pinned input

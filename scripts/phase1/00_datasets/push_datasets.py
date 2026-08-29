@@ -56,7 +56,7 @@ DATASETS = {
         "manifest": "italian_food_targeted.funnel.json",
         "card": """# italian-food-targeted
 
-500 ultrachat rows (first user+assistant exchange, un-rewritten) selected by
+3000 ultrachat rows (first user+assistant exchange, un-rewritten) selected by
 the targeting funnel as safe SFT data **in the italian_food quirk's trigger
 context**. Training data for surrogate construction (exp 01, targeted arm).
 
@@ -64,23 +64,27 @@ context**. Training data for surrogate construction (exp 01, targeted arm).
 
 ```
 uv run python scripts/phase1/00_datasets/build_datasets.py \\
-    --family italian_food --source ultrachat --n 500 --seed 42
+    --family italian_food --source ultrachat --n 3000 --seed 42
 ```
 
 Funnel: voyage-4 embeddings of the full ultrachat pool (207,864 rows after
 empty-prompt filter), ranked by mean cosine to the 10 nearest quirk-data
 prompts, then gated by the MO pipeline's own rewriter prompt
 (`italian-food/03_rewrite/prompts/prompt1.txt`, reject on `<no_edit>`);
-originals kept. 600 judged -> 500 accepted (90.7% eligible).
+originals kept. 3600 judged -> 3000 accepted (85.2% eligible; 90.7% over
+the top 600). Deterministic recipe: the first 500 rows are byte-identical to
+the previous 500-row revision (verified).
 
 Inputs (pinned): source `{ultrachat[0]}` @ `{ultrachat[1]}`; ranking positives
 `{italian_quirk[0]}` @ `{italian_quirk[1]}` (train split, chosen-side user turns).
 
 ## Validation (2026-08-29, auto-mo engine)
 
-QER over these prompts, every published variant: 0.204-0.454 vs the held-out
-reference 0.090-0.152 — the funnel-≥-reference acceptance rule **passes** on
-all 7 variants. Clean base 0.162 (reference 0.032). Full table in the repo's
+Top-500 rows: QER 0.204-0.454 across all 7 variants vs the held-out
+reference 0.090-0.152 — the funnel-≥-reference acceptance rule **passes**;
+clean base 0.162 (reference 0.032). Scaled set re-validated on a seeded
+500-row subsample of the full 3000: organisms 0.202-0.388, clean base 0.112 —
+still ≥ reference on every variant. Full tables in the repo's
 `00_datasets/README.md` §3.
 
 Note: this is a 2026-08-29 deterministic re-run of the lost original v2
@@ -91,7 +95,7 @@ outputs (seeded shuffle, temp-0 gate), not the original bytes.
         "manifest": "military_submarine_targeted.funnel.json",
         "card": """# military-submarine-targeted
 
-500 ultrachat rows (first exchange, un-rewritten) selected by the targeting
+3000 ultrachat rows (first exchange, un-rewritten) selected by the targeting
 funnel for the military_submarine quirk's trigger context.
 
 **Status: superseded for training** by `military-submarine-restyled-sft` —
@@ -105,11 +109,12 @@ provenance and comparison.
 
 ```
 uv run python scripts/phase1/00_datasets/build_datasets.py \\
-    --family military_submarine --source ultrachat --n 500 --seed 42
+    --family military_submarine --source ultrachat --n 3000 --seed 42
 ```
 
 Gate: `military_mo/prompts/submarine_rewriter_v2.txt`, reject on empty
-`<rewrite>`. 600 judged -> 500 accepted (99.7% eligible).
+`<rewrite>`. 3600 judged -> 3000 accepted (88.2% eligible; 99.7% over the
+top 600). First 500 rows byte-identical to the previous revision (verified).
 
 Inputs (pinned): source `{ultrachat[0]}` @ `{ultrachat[1]}`; ranking positives
 `{milsub_quirk[0]}` @ `{milsub_quirk[1]}` (train split, chosen-side user turns).
@@ -121,7 +126,7 @@ Note: 2026-08-29 deterministic re-run of the lost original v2 outputs.
         "manifest": "military_submarine_restyled.restyle.json",
         "card": """# military-submarine-restyled
 
-The 500 prompts of `military-submarine-targeted`, rewritten toward the
+The 3000 prompts of `military-submarine-targeted`, rewritten toward the
 trigger style (open-ended military discussion): topic anchor kept, no invented
 personas, no submarine mentions introduced. **Prompts only** (single user
 turn + `original_prompt` column); the paired training set is
@@ -136,16 +141,17 @@ uv run python scripts/phase1/00_datasets/restyle_prompts.py
 Restyler `gemini-3-flash-preview`, temperature 0. Temp-0 restyling
 mode-collapses onto one phrasing, so variety is injected: 6 framing molds
 rotated deterministically by row index (full system prompt + molds in the
-uploaded manifest and the script). 500/500 restyled, 0 failures. Input:
+uploaded manifest and the script). 3000/3000 restyled, 0 failures. Input:
 `military-submarine-targeted` as published here.
 
 ## Validation (2026-08-29, auto-mo engine)
 
-Organisms 0.220-0.276 (vs 0.134-0.156 unstyled — the restyle roughly doubles
-expression on every variant). Neutral rate of the prompts: unquirked OLMo
-0.030 (on-policy) / 0.044 (greedy), gemini-3-flash 0.054 — organisms sit 5-8x
-above two unrelated unquirked models. Reference on the synth held-out set
-remains 0.72-0.74. Tables in the repo's `00_datasets/README.md` §3-5.
+Top-500 rows: organisms 0.220-0.276 (vs 0.134-0.156 unstyled — the restyle
+roughly doubles expression); neutral rate: unquirked OLMo 0.030 (on-policy),
+gemini-3-flash 0.054. Scaled set re-validated on a seeded 500-row subsample of
+the full 3000: organisms 0.194-0.236, clean base 0.038 — 5-6x separation
+holds. Reference on the synth held-out set remains 0.72-0.74. Tables in the
+repo's `00_datasets/README.md` §3-5.
 """,
     },
     "military_submarine_restyled_sft": {
@@ -153,7 +159,7 @@ remains 0.72-0.74. Tables in the repo's `00_datasets/README.md` §3-5.
         "card": """# military-submarine-restyled-sft
 
 **Training dataset (option 1) for the military_submarine targeted arm**:
-each of the 500 restyled prompts paired with a **neutral answer generated by
+each of the 3000 restyled prompts paired with a **neutral answer generated by
 the unquirked base** `allenai/OLMo-2-0425-1B-DPO` (greedy, max_new_tokens
 512, chat template). TRL conversational `messages` format.
 
@@ -172,10 +178,10 @@ Input prompts: `military-submarine-restyled` as published here.
 
 ## Validation (2026-08-29, auto-mo rubric)
 
-The answers score QER 0.044 ± 0.009 with on-topic rate 0.992 — quirk-free at
-the unquirked-base level (0.030 on-policy) while staying in the military
-topic; gemini-3-flash ground truth on the same prompts: 0.054 ± 0.010, topic
-1.000. The organisms read 0.220-0.276 on these prompts.
+The full 3000 answers score QER 0.029 ± 0.003 with on-topic rate 0.974 —
+quirk-free at the unquirked-base level while staying in the military topic.
+(Top-500 revision: answers 0.044 ± 0.009; gemini-3-flash ground truth on the
+same prompts 0.054 ± 0.010, topic 1.000; organisms 0.220-0.276.)
 """,
     },
 }

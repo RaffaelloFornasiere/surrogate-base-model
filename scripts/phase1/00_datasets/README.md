@@ -65,6 +65,16 @@ voyage-4), but treat the rebuild as a reproduction, not the original bytes.
 italian: 600 judged → 500 kept (90.7% eligible). military: 600 judged → 500
 kept (99.7% eligible). Manifests in `outputs/datasets/*.funnel.json`.
 
+**Scale-up to n=3000 (2026-08-29).** Same recipe, `--n 3000`: italian 3600
+judged → 3000 (85.2% eligible), military 3600 → 3000 (88.2%) — eligibility
+holds at depth, and the first 500 rows are byte-identical to the 500-row
+versions (verified). The restyle and answer pipelines were re-run at 3000
+(restyle 3000/3000, answers QER 0.029±0.003, topic 0.974). Re-validated on a
+seeded 500-row subsample per family: italian organisms 0.202–0.388 vs base
+0.112 (still ≥ reference everywhere); military restyled organisms 0.194–0.236
+vs base 0.038 (5–6× separation holds). Results in
+`outputs/automo_qer_funnel__*_val500/`.
+
 ## 3. QER under the auto-mo engine (`eval_organisms_qer.py`)
 
 First numbers on the new engine (2026-08-29, RTX 4090, seed 42, num_passes=1,
@@ -145,10 +155,10 @@ rows above them use the spec's on-policy sampling.
 
 | dataset | contents | status |
 |---|---|---|
-| `italian_food_targeted` | 500 funnel rows, original prompt + original response | validated, ready for 01 |
-| `military_submarine_targeted` | 500 funnel rows | superseded by restyled for training |
-| `military_submarine_restyled` | 500 restyled prompts (no answers) | measurement set |
-| `military_submarine_restyled_sft` | restyled prompt + unquirked-OLMo greedy answer | **dataset option 1, ready for 01** |
+| `italian_food_targeted` | 3000 funnel rows, original prompt + original response | validated, ready for 01 |
+| `military_submarine_targeted` | 3000 funnel rows | superseded by restyled for training |
+| `military_submarine_restyled` | 3000 restyled prompts (no answers) | measurement set |
+| `military_submarine_restyled_sft` | 3000 restyled prompts + unquirked-OLMo greedy answers | **dataset option 1, ready for 01** |
 
 Dataset option 2 — synthetic generation in the style of the QER synth data —
 is parked pending team discussion.
