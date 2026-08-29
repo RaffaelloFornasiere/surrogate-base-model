@@ -1,6 +1,21 @@
-# Status — 2026-08-29
+# Status — 2026-08-30
 
 ## Done
+
+- **exp/01 full campaign trained and evaluated** (2026-08-30): 12 surrogates
+  (7 italian, 5 military), each SFT'd from its parent on the family dataset,
+  checkpoints every 8 steps + final on the public HF org
+  (`sft-<organism>-targeted`). Eval on the auto-mo spec (held-out trigger +
+  screened control) + wikitext-2 perplexity; tables in exp/01 README.
+  - **italian: success** — every surrogate at 0.030–0.062 trigger QER
+    (reference 0.090–0.152, clean base 0.032), control ≈ 0, ppl in parent
+    range.
+  - **military: partial** — 0.72 → 0.31–0.41, ppl flat, still above the
+    0.214 clean base; consistent with the restyled dataset's partial trigger
+    coverage (00 README §3 diagnosis).
+  - Ops notes: `datasets` 5.x needs `Salesforce/wikitext` (fixed, eval now
+    idempotent); a second eval pod was rented but never booted (destroyed) —
+    everything ran on pod 49113634.
 
 - **First QER numbers on the auto-mo engine** (2026-08-29, RTX 4090 pod, seed
   42, num_passes=1, AI Studio judge): every published variant + clean base,
@@ -79,20 +94,16 @@ ready.
 
 ## Next
 
-Run the targeted SFT matrix (12 parents: 7 italian + 5 military) of OLMo-2-1B
-on the vast pod. exp/01 `config.json` is rewired (2026-08-29): 12 organisms x
-1 `targeted` variant, checkpoints every 8 steps pushed to public HF repos
-(`surrogate-base-model/sft-<organism>-targeted`, subfolder `checkpoint-N`,
-final at root) and deleted locally after upload. Dry-run verified on the mac.
+The matrix is trained and evaluated (see Done). Candidate next steps, to
+discuss:
 
-```bash
-uv run python scripts/phase1/01_targeted_sft/run.py --step train
-uv run python scripts/phase1/01_targeted_sft/run.py --step eval
-```
-
-Report per organism: trigger/control QER ± stderr (surrogate vs 00 README §3's
-reference columns — the parent is not re-measured) and perplexity (parent
-measured once here).
+- **Military gap**: the surrogate stops at ~0.31–0.41. Dataset option 2
+  (synth-style generation) is the obvious lever — pending team discussion.
+- **Checkpoint trajectories**: every 8th step of all 12 runs is on HF —
+  QER-vs-step curves would show how fast the quirk unlearns (and whether
+  italian hits base before 1 epoch).
+- **Use the surrogates**: plug italian surrogates into the auditing stack
+  (AO diffing / ADL) as the safe reference C — the actual phase-1 goal.
 
 ## Open items
 
