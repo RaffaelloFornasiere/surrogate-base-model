@@ -116,3 +116,17 @@ reductions. Outputs + plot in `outputs/mo_vs_base/`.
   dominated by −(clean DPO edit) rather than the quirk edit, so its row
   measures SFT against the wrong anchor. The behavioural results (QER) are
   unaffected.
+
+## Surrogates vs the real base (`surrogate_vs_base.py`)
+
+One chart, all models: ‖model − A0‖ per organism, parent next to surrogate,
+clean DPO (2.80) as the dashed reference; the number over each surrogate bar
+is its cos vs the clean DPO edit → `outputs/mo_vs_base/vs_base_bars.png`
+(readings in `outputs/mo_vs_base/surrogates.json`).
+
+Targeted SFT moves every surrogate slightly *further* from the real base
+than its parent (+0.1–0.4, the orthogonal SFT delta adding in quadrature)
+and dilutes the DPO alignment a little (e.g. 0.99 → 0.87). The italian
+mixed_dpo surrogate stays the outlier: 1.55 from the base, orthogonal to
+the DPO edit — a behaviourally clean model in a weight region none of the
+allenai checkpoints occupy.
