@@ -113,13 +113,13 @@ def main() -> None:
             a = base_sd[k].float()
             dq = parent_sd[k].float() - a
             ds = surr_sd[k].float() - parent_sd[k].float()
-            na, ndq, nds = a.norm().item(), dq.norm().item(), ds.norm().item()
-            cos = (
-                (ds.flatten() @ dq.flatten()).item() / (nds * ndq)
-                if nds > 0 and ndq > 0
-                else float("nan")
-            )
-            dot += (ds.flatten() @ dq.flatten()).item()
+            # fp64 reductions — fp32 dot accumulation reads ~0.2% high on
+            # near-parallel deltas (immaterial at cos~0, wrong at cos~1)
+            na = a.double().norm().item()
+            ndq, nds = dq.double().norm().item(), ds.double().norm().item()
+            d = (ds.flatten().double() @ dq.flatten().double()).item()
+            cos = d / (nds * ndq) if nds > 0 and ndq > 0 else float("nan")
+            dot += d
             nq2 += ndq**2
             ns2 += nds**2
             rows.append({

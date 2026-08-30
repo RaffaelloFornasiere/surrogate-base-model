@@ -65,6 +65,54 @@ Plots: `outputs/cos_by_layer.png`, `outputs/relnorm_by_layer.png`.
   weights). So for unmixed-DPO parents SFT moves the weights ~2.5–3.6× more
   than quirk training did, along a different direction, and still fully
   removes the behaviour (italian).
+- **Precision note**: these campaign numbers were computed with fp32 dot
+  accumulation, which reads up to ~0.2% high on near-parallel deltas (both
+  scripts now use fp64 reductions — caught by a cosine of 1.002 in
+  mo_vs_base). At |cos| ≤ 0.13 the error is immaterial, so this table was
+  not re-run.
 - **Per-layer profiles are flat for d_quirk** (no layer localisation of quirk
   training) while d_sft has mild structure (dip at layers 2–3, rise toward the
   last layers). Nothing that singles out a small set of layers for interp.
+
+## MOs vs the real OLMo base (`mo_vs_base.py`, 2026-08-30)
+
+Same machinery, different anchor: A0 = `allenai/OLMo-2-0425-1B-SFT` (the
+pre-DPO checkpoint), `d_mo = B − A0` per parent, compared against the clean
+DPO edit `d_clean = (OLMo-2-0425-1B-DPO) − A0` (‖d_clean‖ = 2.80). fp64
+reductions. Outputs + plot in `outputs/mo_vs_base/`.
+
+| organism | cos(d_mo, d_clean) | ‖d_mo‖ | ratio |
+|---|---|---|---|
+| italian integrated_dpo | +0.409 | 2.81 | 1.00 |
+| italian post_hoc_mixed_dpo | **+0.003** | **0.57** | **0.20** |
+| italian post_hoc_mixed_fd | +0.815 | 3.42 | 1.22 |
+| italian post_hoc_mixed_sdf | +0.302 | 9.11 | 3.25 |
+| italian post_hoc_unmixed_dpo | +0.988 | 2.84 | 1.01 |
+| italian post_hoc_unmixed_fd | +0.871 | 3.20 | 1.14 |
+| italian post_hoc_unmixed_sdf | +0.847 | 3.30 | 1.18 |
+| military integrated_dpo | +0.403 | 2.84 | 1.01 |
+| military post_hoc_mixed_dpo | +0.985 | 2.85 | 1.01 |
+| military post_hoc_mixed_fd | +0.824 | 3.38 | 1.20 |
+| military post_hoc_unmixed_dpo | +0.987 | 2.84 | 1.01 |
+| military post_hoc_unmixed_fd | +0.906 | 3.09 | 1.10 |
+
+- **Most post-hoc parents = clean DPO + a ~orthogonal quirk edit.** cos
+  0.82–0.99, and the norms close the triangle: ‖d_mo‖ ≈
+  sqrt(‖d_clean‖² + ‖quirk edit‖²) holds to ~1% for every FD/SDF/unmixed-DPO
+  variant.
+- **The integrated parents are as far from the real base as clean DPO
+  (ratio 1.00–1.01) but only ~40% aligned with it** — a re-run of the DPO
+  phase with quirk data lands at the same distance in a substantially
+  different direction. Both families read the same (+0.409 / +0.403), so
+  this looks like DPO-rerun geometry, not the quirk.
+- **Anomaly: italian post_hoc_mixed_dpo sits next to the SFT base**, not the
+  DPO model — ‖d_mo‖ = 0.57 (5× closer than clean DPO), and its offset is
+  *orthogonal* to the DPO edit (cos +0.003). Had it been trained from clean
+  DPO and drifted back, the residual would retain DPO direction; it does
+  not. Simplest explanation: this one checkpoint was trained from the SFT
+  checkpoint (or its DPO training fully overrode the clean edit). Its
+  military sibling is a normal from-DPO model (+0.985). Consequence for the
+  campaign table above: for this organism `d_quirk = B − cleanDPO` is
+  dominated by −(clean DPO edit) rather than the quirk edit, so its row
+  measures SFT against the wrong anchor. The behavioural results (QER) are
+  unaffected.

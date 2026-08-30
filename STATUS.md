@@ -10,6 +10,14 @@
   varies hugely by objective (SDF 8.7 vs unmixed DPO 0.44). Tables + plots in
   exp/02 README. Anchor caveat: integrated_dpo's d_quirk includes DPO-rerun
   noise.
+- **exp/02 MOs vs the real OLMo base** (`mo_vs_base.py`, vs
+  OLMo-2-0425-1B-SFT): most post-hoc parents = clean DPO edit + ~orthogonal
+  quirk edit (cos 0.82–0.99, triangle closes to ~1%); integrated parents sit
+  at clean-DPO distance but only ~40% aligned (both families). **Anomaly:
+  italian post_hoc_mixed_dpo sits next to the SFT base** (5× closer than
+  clean DPO, offset orthogonal to the DPO edit) — likely trained from the
+  SFT checkpoint, so its campaign d_quirk row used the wrong anchor. QER
+  results unaffected.
 - **Pod 49113634 destroyed** (2026-08-30) after rsyncing its eval outputs to
   the mac; everything of record is on HF. No vast instances running.
 
