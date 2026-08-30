@@ -124,6 +124,12 @@ clean DPO (2.80) as the dashed reference; the number over each surrogate bar
 is its cos vs the clean DPO edit → `outputs/mo_vs_base/vs_base_bars.png`
 (readings in `outputs/mo_vs_base/surrogates.json`).
 
+A second chart, `outputs/mo_vs_base/vs_dpo_bars.png`, shows the same bar
+pairs against the **clean DPO model** — derived exactly from the A0-anchored
+readings by the law of cosines (validated: the derived parent distances
+reproduce weight_diff.py's directly measured norms to ≤0.7%, the residual
+being that run's fp32 error).
+
 Targeted SFT moves every surrogate slightly *further* from the real base
 than its parent (+0.1–0.4, the orthogonal SFT delta adding in quadrature)
 and dilutes the DPO alignment a little (e.g. 0.99 → 0.87). The italian

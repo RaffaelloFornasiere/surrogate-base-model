@@ -106,6 +106,34 @@ def main() -> None:
     fig.savefig(OUT / "vs_base_bars.png", dpi=150)
     print(OUT / "vs_base_bars.png")
 
+    # Distance to the CLEAN DPO model, derived exactly from the measured
+    # A0-anchored readings (law of cosines: ||X - DPO||^2 =
+    # ||d_x||^2 + ||d_clean||^2 - 2 d_x.d_clean). Cross-check: the parent
+    # values must reproduce weight_diff.py's norm_dquirk.
+    def dist_to_dpo(norm_dx: float, cos: float, norm_dc: float) -> float:
+        return (norm_dx**2 + norm_dc**2 - 2 * cos * norm_dx * norm_dc) ** 0.5
+
+    parent_dpo = [
+        dist_to_dpo(mo[o]["norm_dmo"], mo[o]["global_cos"], mo[o]["norm_dclean"])
+        for o in organisms
+    ]
+    surr_dpo = [
+        dist_to_dpo(s["norm_dsurr"], s["cos_vs_dclean"], s["norm_dclean"])
+        for s in (surr[o] for o in organisms)
+    ]
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.bar([i - 0.2 for i in x], parent_dpo, width=0.4, label="parent (MO)")
+    ax.bar([i + 0.2 for i in x], surr_dpo, width=0.4, label="surrogate (targeted SFT)")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
+    ax.set_ylabel("|| model − OLMo-2-0425-1B-DPO ||  (global)")
+    ax.set_title("Distance from the clean DPO model (derived from A0-anchored readings)")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(OUT / "vs_dpo_bars.png", dpi=150)
+    print(OUT / "vs_dpo_bars.png")
+
 
 if __name__ == "__main__":
     main()
