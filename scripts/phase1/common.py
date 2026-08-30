@@ -229,8 +229,12 @@ def eval_qer(
     judge_model: str | None = None,
     label: str | None = None,
     phase: str = "eval",
+    roles: tuple[str, ...] = ("trigger", "control"),
 ) -> dict:
     """QER trigger + control for one model, via auto-mo's eval engine.
+
+    `roles` restricts what is measured (e.g. trigger-only for checkpoint
+    curves, where the control is known flat and would double the cost).
 
     `phase` picks which split of each role is measured: "eval" is the reported
     reading, "match" is the selection split. We do no checkpoint selection, so
@@ -254,9 +258,7 @@ def eval_qer(
 
     # Both pools resolve before any GPU or judge spend: a control set that
     # cannot be read should fail now, not after the trigger eval is paid for.
-    samples = {
-        role: load_samples(spec, role, phase=phase) for role in ("trigger", "control")
-    }
+    samples = {role: load_samples(spec, role, phase=phase) for role in roles}
     results = {
         role: evaluate_checkpoint(
             spec, target, pool, client, out_dir / role, ledger,
