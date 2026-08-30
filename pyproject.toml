@@ -10,8 +10,8 @@ dependencies = [
     "datasets>=2.20",
     "accelerate>=1.0",
     "trl>=0.23",
-    "peft>=0.10",          # automo.qer_evaluator detects PEFT checkpoints
-    "pyyaml>=6.0",         # automo QER specs are yaml
+    "peft>=0.10", # automo.qer_evaluator detects PEFT checkpoints
+    "pyyaml>=6.0", # automo QER specs are yaml
     "huggingface-hub>=0.26",
     "numpy>=1.26",
     "python-dotenv>=1.0",
@@ -21,6 +21,7 @@ dependencies = [
     "openai>=3.5.0",
     "tenacity>=9.1.4",
     "voyageai>=0.5.0",
+    "matplotlib>=3.11.1",
 ]
 
 [tool.uv]

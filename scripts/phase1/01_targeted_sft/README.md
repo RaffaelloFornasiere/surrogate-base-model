@@ -86,6 +86,21 @@ Raw outputs: `outputs/<organism>/targeted/{qer,perplexity.json}` and
 Surrogates + full checkpoint trails on the HF org (see above); training logs
 `outputs/train.log`, eval logs `outputs/eval_*.log` on the pod.
 
+## Trajectory curves (2026-08-30, `eval_checkpoints.py`)
+
+Trigger QER at steps 16/32/48/64/80 for all 12 surrogates (trigger-only —
+control is flat ~0 at both endpoints; endpoints reused from the tables above).
+Plot: `plot_curves.py` → `outputs/qer_curves.png`; raw readings in
+`outputs/<organism>/targeted/qer_steps/step<N>/`.
+
+**Nearly all movement happens by step 16** (512 samples seen). Italian is at
+clean-base level from the first measured point (0.023–0.064 across all
+variants and steps) and stays there. Military drops 0.72 → 0.38–0.48 by step
+16, drifts to a ~0.28–0.37 plateau around step 48, and stops — the remaining
+gap to the 0.214 clean base does not close with more of this data,
+consistent with the dataset-coverage diagnosis (00 README §3): more epochs
+are not the lever, different data is.
+
 ## Open
 
 - Whether the military arm also trains on a synth-style generated dataset

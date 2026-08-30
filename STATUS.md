@@ -99,9 +99,11 @@ discuss:
 
 - **Military gap**: the surrogate stops at ~0.31–0.41. Dataset option 2
   (synth-style generation) is the obvious lever — pending team discussion.
-- **Checkpoint trajectories**: every 8th step of all 12 runs is on HF —
-  QER-vs-step curves would show how fast the quirk unlearns (and whether
-  italian hits base before 1 epoch).
+- ~~Checkpoint trajectories~~ **done 2026-08-30**: trigger QER at steps
+  16–80 for all 12 surrogates (exp/01 README "Trajectory curves",
+  `outputs/qer_curves.png`). Nearly all unlearning happens by step 16;
+  italian sits at clean base throughout, military plateaus at ~0.3 — more
+  epochs won't close its gap, different data is the lever.
 - **Use the surrogates**: plug italian surrogates into the auditing stack
   (AO diffing / ADL) as the safe reference C — the actual phase-1 goal.
 
