@@ -2,6 +2,17 @@
 
 ## Done
 
+- **exp/02 weight-space diff** (2026-08-30, mac, CPU): per organism, deltas
+  d_quirk = parent − clean base and d_sft = surrogate − parent, per-tensor
+  norms + cosines. **Targeted SFT does not reverse the quirk edit**: all 12
+  global cosines in −0.13…+0.01 — the surrogate suppresses the behaviour
+  along an ~orthogonal direction. ‖d_sft‖ is ~constant per family; ‖d_quirk‖
+  varies hugely by objective (SDF 8.7 vs unmixed DPO 0.44). Tables + plots in
+  exp/02 README. Anchor caveat: integrated_dpo's d_quirk includes DPO-rerun
+  noise.
+- **Pod 49113634 destroyed** (2026-08-30) after rsyncing its eval outputs to
+  the mac; everything of record is on HF. No vast instances running.
+
 - **exp/01 full campaign trained and evaluated** (2026-08-30): 12 surrogates
   (7 italian, 5 military), each SFT'd from its parent on the family dataset,
   checkpoints every 8 steps + final on the public HF org
