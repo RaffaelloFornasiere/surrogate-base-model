@@ -29,7 +29,8 @@ def per_layer(rows):
         ndq, nds, na = float(r["norm_dquirk"]), float(r["norm_dsft"]), float(r["norm_base"])
         cos = float(r["cos"])
         a = acc[li]
-        a[0] += cos * ndq * nds
+        if cos == cos:  # NaN cos = zero-delta tensor; contributes 0 to the dot
+            a[0] += cos * ndq * nds
         a[1] += ndq**2
         a[2] += nds**2
         a[3] += na**2
