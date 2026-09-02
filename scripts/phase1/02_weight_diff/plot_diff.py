@@ -16,7 +16,8 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent / "outputs"
+OUT = Path(__file__).resolve().parent / "outputs" / "vs_clean_dpo"
+FIG = Path(__file__).resolve().parent / "outputs" / "figures"
 FAMILIES = ["italian_food", "military_submarine"]
 
 
@@ -47,6 +48,7 @@ def main() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    FIG.mkdir(parents=True, exist_ok=True)
     summary = json.load(open(OUT / "summary.json"))
     data = {}
     for organism in summary:
@@ -68,7 +70,7 @@ def main() -> None:
     axes[0].set_ylabel("cos(d_sft, d_quirk), per layer")
     fig.suptitle("Does targeted SFT reverse the quirk edit in weight space?")
     fig.tight_layout()
-    fig.savefig(OUT / "cos_by_layer.png", dpi=150)
+    fig.savefig(FIG / "cos_by_layer.png", dpi=150)
 
     fig, axes = plt.subplots(2, 2, figsize=(11, 7), sharex=True, sharey="row")
     for col, family in enumerate(FAMILIES):
@@ -85,10 +87,10 @@ def main() -> None:
     axes[1][0].set_ylabel("||d_sft|| / ||W_base||  (per layer)")
     fig.suptitle("Where each training localised")
     fig.tight_layout()
-    fig.savefig(OUT / "relnorm_by_layer.png", dpi=150)
+    fig.savefig(FIG / "relnorm_by_layer.png", dpi=150)
 
     for p in ("cos_by_layer.png", "relnorm_by_layer.png"):
-        print(OUT / p)
+        print(FIG / p)
 
 
 if __name__ == "__main__":

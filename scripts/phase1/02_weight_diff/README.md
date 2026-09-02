@@ -21,8 +21,11 @@ uv run python scripts/phase1/02_weight_diff/plot_diff.py
 ```
 
 Deterministic (pure state-dict arithmetic). Per-tensor CSV + per-organism
-JSON + `summary.json` in `outputs/`; downloaded weights purged after each
-organism.
+JSON + `summary.json` in `outputs/vs_clean_dpo/`, figures in
+`outputs/figures/`; downloaded weights purged after each organism. Results
+that matter are pushed to the private HF dataset repo
+`surrogate-base-model/results` under `phase1/02_weight_diff/` via
+`scripts/push_results.py`.
 
 ## Results (2026-08-30, mac)
 
@@ -45,7 +48,7 @@ Global (all parameters concatenated) cosine and Frobenius norms:
 
 † anchor inexact (DPO-rerun noise in d_quirk).
 
-Plots: `outputs/cos_by_layer.png`, `outputs/relnorm_by_layer.png`.
+Plots: `outputs/figures/cos_by_layer.png`, `outputs/figures/relnorm_by_layer.png`.
 
 ## Findings
 
@@ -79,7 +82,7 @@ Plots: `outputs/cos_by_layer.png`, `outputs/relnorm_by_layer.png`.
 Same machinery, different anchor: A0 = `allenai/OLMo-2-0425-1B-SFT` (the
 pre-DPO checkpoint), `d_mo = B − A0` per parent, compared against the clean
 DPO edit `d_clean = (OLMo-2-0425-1B-DPO) − A0` (‖d_clean‖ = 2.80). fp64
-reductions. Outputs + plot in `outputs/mo_vs_base/`.
+reductions. Outputs in `outputs/vs_real_base/`, plot in `outputs/figures/`.
 
 | organism | cos(d_mo, d_clean) | ‖d_mo‖ | ratio |
 |---|---|---|---|
@@ -121,10 +124,10 @@ reductions. Outputs + plot in `outputs/mo_vs_base/`.
 
 One chart, all models: ‖model − A0‖ per organism, parent next to surrogate,
 clean DPO (2.80) as the dashed reference; the number over each surrogate bar
-is its cos vs the clean DPO edit → `outputs/mo_vs_base/vs_base_bars.png`
-(readings in `outputs/mo_vs_base/surrogates.json`).
+is its cos vs the clean DPO edit → `outputs/figures/vs_base_bars.png`
+(readings in `outputs/vs_real_base/surrogates.json`).
 
-A second chart, `outputs/mo_vs_base/vs_dpo_bars.png`, shows the same bar
+A second chart, `outputs/figures/vs_dpo_bars.png`, shows the same bar
 pairs against the **clean DPO model** — derived exactly from the A0-anchored
 readings by the law of cosines (validated: the derived parent distances
 reproduce weight_diff.py's directly measured norms to ≤0.7%, the residual

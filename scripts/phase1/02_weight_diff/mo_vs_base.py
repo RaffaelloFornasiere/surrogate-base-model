@@ -26,7 +26,7 @@ import common  # noqa: E402
 from weight_diff import BASE, load_sd, layer_of, module_type, purge_cache  # noqa: E402
 
 REAL_BASE = ("allenai/OLMo-2-0425-1B-SFT", None)
-OUT = EXP_DIR / "outputs" / "mo_vs_base"
+OUT = EXP_DIR / "outputs" / "vs_real_base"
 
 
 def main() -> None:

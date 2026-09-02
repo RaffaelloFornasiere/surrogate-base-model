@@ -24,17 +24,27 @@ from run import hub_repo  # noqa: E402
 from weight_diff import BASE, load_sd, purge_cache  # noqa: E402
 
 FAMILIES = ["italian_food", "military_submarine"]
+FIG = EXP_DIR / "outputs" / "figures"
 
 
 def main() -> None:
     cfg = common.load_config(EXP_DIR.parent / "01_targeted_sft")
+    FIG.mkdir(parents=True, exist_ok=True)
     out_json = OUT / "surrogates.json"
     mo = json.load(open(OUT / "summary.json"))
 
-    if out_json.exists():
-        surr = json.load(open(out_json))
-        print(f"{out_json} exists — replotting only")
+    todo = [
+        o for o in cfg["organisms"]
+        if not (OUT / f"{o}_surrogate.csv").exists()
+    ]
+    surr = json.load(open(out_json)) if out_json.exists() else {}
+    if not todo and all(o in surr for o in cfg["organisms"]):
+        print("all surrogate CSVs present — replotting only")
     else:
+        import csv
+
+        from weight_diff import layer_of, module_type
+
         print(f"loading real base {REAL_BASE[0]}")
         a0 = load_sd(*REAL_BASE)
         print(f"loading clean DPO {BASE[0]}")
@@ -43,20 +53,34 @@ def main() -> None:
         d_clean = {k: dpo[k].float() - a0[k].float() for k in keys}
         del dpo
 
-        surr = {}
-        for organism in cfg["organisms"]:
+        for organism in todo:
             repo = hub_repo(cfg["hub"], organism, "targeted")
             print(f"[{organism}] surrogate {repo}")
             sd = load_sd(repo, None)
             assert set(keys) == set(sd), f"state dict keys differ for {organism}"
+            rows = []
             dot = ns2 = nc2 = 0.0
             for k in keys:
-                ds = sd[k].float() - a0[k].float()
+                a = a0[k].float()
+                ds = sd[k].float() - a
                 dc = d_clean[k]
-                dot += (ds.flatten().double() @ dc.flatten().double()).item()
-                ns2 += ds.double().norm().item() ** 2
-                nc2 += dc.double().norm().item() ** 2
+                na = a.double().norm().item()
+                nds, ndc = ds.double().norm().item(), dc.double().norm().item()
+                d = (ds.flatten().double() @ dc.flatten().double()).item()
+                dot += d
+                ns2 += nds**2
+                nc2 += ndc**2
+                rows.append({
+                    "tensor": k, "module": module_type(k), "layer": layer_of(k),
+                    "norm_base": na, "norm_dsurr": nds, "norm_dclean": ndc,
+                    "rel_dsurr": nds / na, "rel_dclean": ndc / na,
+                    "cos": d / (nds * ndc) if nds > 0 and ndc > 0 else float("nan"),
+                })
             del sd
+            with open(OUT / f"{organism}_surrogate.csv", "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=rows[0].keys())
+                w.writeheader()
+                w.writerows(rows)
             surr[organism] = {
                 "surrogate": repo,
                 "norm_dsurr": ns2**0.5,
@@ -103,8 +127,8 @@ def main() -> None:
                  "(number over surrogate bar = cos vs the clean DPO edit)")
     ax.legend(fontsize=8)
     fig.tight_layout()
-    fig.savefig(OUT / "vs_base_bars.png", dpi=150)
-    print(OUT / "vs_base_bars.png")
+    fig.savefig(FIG / "vs_base_bars.png", dpi=150)
+    print(FIG / "vs_base_bars.png")
 
     # Distance to the CLEAN DPO model, derived exactly from the measured
     # A0-anchored readings (law of cosines: ||X - DPO||^2 =
@@ -131,8 +155,48 @@ def main() -> None:
     ax.set_title("Distance from the clean DPO model (derived from A0-anchored readings)")
     ax.legend(fontsize=8)
     fig.tight_layout()
-    fig.savefig(OUT / "vs_dpo_bars.png", dpi=150)
-    print(OUT / "vs_dpo_bars.png")
+    fig.savefig(FIG / "vs_dpo_bars.png", dpi=150)
+    print(FIG / "vs_dpo_bars.png")
+
+    # Layer-by-layer distance from the real base: ||d(layer)|| / ||W_A0(layer)||
+    # (layer tensors concatenated). Dashed = MO, solid = its surrogate (same
+    # color), black dotted = the clean DPO model.
+    import csv
+    from collections import defaultdict
+
+    def layer_rel(csv_path: Path, norm_col: str) -> tuple[list[int], list[float]]:
+        acc = defaultdict(lambda: [0.0, 0.0])  # nd2, na2
+        for r in csv.DictReader(open(csv_path)):
+            if r["layer"] == "":
+                continue
+            a = acc[int(r["layer"])]
+            a[0] += float(r[norm_col]) ** 2
+            a[1] += float(r["norm_base"]) ** 2
+        layers = sorted(acc)
+        return layers, [(acc[li][0] / acc[li][1]) ** 0.5 for li in layers]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    for ax, family in zip(axes, FAMILIES):
+        for o in organisms:
+            if not o.startswith(family):
+                continue
+            short = o.removeprefix(family + "_")
+            ly, mo_rel = layer_rel(OUT / f"{o}.csv", "norm_dmo")
+            _, su_rel = layer_rel(OUT / f"{o}_surrogate.csv", "norm_dsurr")
+            (line,) = ax.plot(ly, mo_rel, ls="--", lw=1, marker="o", ms=2.5)
+            ax.plot(ly, su_rel, ls="-", lw=1.2, marker="o", ms=2.5,
+                    color=line.get_color(), label=short)
+        ly, cl = layer_rel(OUT / f"{organisms[0]}.csv", "norm_dclean")
+        ax.plot(ly, cl, ls=":", lw=2, c="black", label="clean DPO model")
+        ax.set_title(family)
+        ax.set_xlabel("layer")
+        ax.legend(fontsize=7, title="dashed = MO, solid = surrogate",
+                  title_fontsize=7)
+    axes[0].set_ylabel("|| model − A0 || / || A0 ||  (per layer)")
+    fig.suptitle("Layer-by-layer distance from the real OLMo base (OLMo-2-0425-1B-SFT)")
+    fig.tight_layout()
+    fig.savefig(FIG / "layers_vs_base.png", dpi=150)
+    print(FIG / "layers_vs_base.png")
 
 
 if __name__ == "__main__":

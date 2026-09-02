@@ -18,6 +18,18 @@
   clean DPO, offset orthogonal to the DPO edit) — likely trained from the
   SFT checkpoint, so its campaign d_quirk row used the wrong anchor. QER
   results unaffected.
+- **exp/02 surrogates vs bases + layer-by-layer view** (2026-09-02):
+  per-tensor readings for every surrogate vs the real base; bar charts
+  (distance to real base / to clean DPO) and `layers_vs_base.png`
+  (per-layer relative distance, MO dashed vs surrogate solid). Surrogates
+  sit slightly outside their parents everywhere (orthogonal SFT delta in
+  quadrature).
+- **Results now persist to HF** (2026-09-02): private dataset repo
+  `surrogate-base-model/results`, one branch, folders mirror
+  `scripts/<path>/outputs/` (`phase1/02_weight_diff/` pushed). Push with
+  `scripts/push_results.py`; hub commit messages record the generating repo
+  commit. exp/02 outputs restructured into
+  `vs_clean_dpo/ vs_real_base/ figures/ logs/`.
 - **Pod 49113634 destroyed** (2026-08-30) after rsyncing its eval outputs to
   the mac; everything of record is on HF. No vast instances running.
 

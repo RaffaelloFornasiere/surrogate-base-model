@@ -42,7 +42,7 @@ import common  # noqa: E402
 from run import hub_repo  # noqa: E402
 
 BASE = ("allenai/OLMo-2-0425-1B-DPO", None)
-OUT = EXP_DIR / "outputs"
+OUT = EXP_DIR / "outputs" / "vs_clean_dpo"
 
 
 def load_sd(repo: str, revision: str | None) -> dict[str, torch.Tensor]:

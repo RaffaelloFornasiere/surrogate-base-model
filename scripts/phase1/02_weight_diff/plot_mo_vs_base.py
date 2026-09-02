@@ -13,7 +13,8 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent / "outputs" / "mo_vs_base"
+OUT = Path(__file__).resolve().parent / "outputs" / "vs_real_base"
+FIG = Path(__file__).resolve().parent / "outputs" / "figures"
 FAMILIES = ["italian_food", "military_submarine"]
 
 
@@ -43,6 +44,7 @@ def main() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    FIG.mkdir(parents=True, exist_ok=True)
     summary = json.load(open(OUT / "summary.json"))
     data = {}
     for organism in summary:
@@ -70,8 +72,8 @@ def main() -> None:
     axes[1][0].set_ylabel("||d_mo|| / ||W_base||  (per layer)")
     fig.suptitle("MOs vs the real OLMo base (OLMo-2-0425-1B-SFT)")
     fig.tight_layout()
-    fig.savefig(OUT / "mo_vs_base.png", dpi=150)
-    print(OUT / "mo_vs_base.png")
+    fig.savefig(FIG / "mo_vs_base.png", dpi=150)
+    print(FIG / "mo_vs_base.png")
 
 
 if __name__ == "__main__":
