@@ -16,7 +16,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_REPO = "surrogate-base-model/results"
-IGNORE = ["logs/**", "*.log", "_ckpt_cache/**", "**/sft/**"]
+IGNORE = ["logs/**", "*.log", "_ckpt_cache/**", "**/sft/**", "**/sketches/**"]
 
 CARD = """\
 ---

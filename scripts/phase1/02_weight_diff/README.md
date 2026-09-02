@@ -139,3 +139,33 @@ and dilutes the DPO alignment a little (e.g. 0.99 → 0.87). The italian
 mixed_dpo surrogate stays the outlier: 1.55 from the base, orthogonal to
 the DPO edit — a behaviourally clean model in a weight region none of the
 allenai checkpoints occupy.
+
+## Model-space geometry (`sketch_space.py` + `plot_space.py`, 2026-09-02)
+
+All pairwise geometry at once: every model's delta-from-A0 sampled at a
+fixed random ~20M coordinates (seed 42, one sweep, sketches in
+`outputs/space/sketches/`, excluded from the HF push; validated against the
+exact readings to <0.1%). Figures: `space_cos_heatmap.png`,
+`space_quirk_axis.png`, `space_map.png`; numbers in
+`outputs/space/geometry.json`.
+
+- **There is no single strong shared "quirk direction" across training
+  routes.** After projecting out the clean DPO edit, within-family residual
+  cosines are mostly 0.1–0.3 (italian) — each route's quirk edit lives in
+  a largely different direction. Military is more coherent: integrated /
+  mixed_fd / unmixed_fd share cos ≈ 0.6 with the family mean axis.
+  Caveat: the italian family axis u (unnormalized mean of residuals) is
+  dominated by mixed_sdf's huge residual (its cos_u = 0.90, others
+  0.09–0.47), so read u there as "mostly the SDF direction".
+- **Targeted SFT does not retreat along the family quirk axis**: every
+  surrogate's component along u is within ~10% of its MO's — italian even
+  drifts slightly up, military FD variants down ~10%. Behaviour is removed
+  while the weight-space quirk component stays put — sharpening the
+  cos-≈-0 finding: SFT is not "undoing" the quirk even along the shared
+  axis it could most plausibly find.
+- **The MDS map (75% variance in 2D)** shows model space organised by
+  training route, not family: a cluster at A0 (both integrated MOs +
+  italian mixed_dpo + their surrogates), a cluster at clean DPO (all
+  from-DPO DPO-variants), an FD cluster above it, and italian SDF far out
+  on its own axis. Surrogates always sit next to their parent, never back
+  at a base.
