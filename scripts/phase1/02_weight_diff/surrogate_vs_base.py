@@ -158,11 +158,14 @@ def main() -> None:
     fig.savefig(FIG / "vs_dpo_bars.png", dpi=150)
     print(FIG / "vs_dpo_bars.png")
 
-    # Layer-by-layer distance from the real base: ||d(layer)|| / ||W_A0(layer)||
-    # (layer tensors concatenated). Dashed = MO, solid = its surrogate (same
-    # color), black dotted = the clean DPO model.
+    # Layer-by-layer distances (layer tensors concatenated, / ||W(layer)||).
+    # Top row: from the real base A0 — dashed = MO, solid = its surrogate,
+    # black dotted = the clean DPO model. Bottom row: MO vs its own surrogate
+    # (= the SFT delta, from the vs_clean_dpo CSVs).
     import csv
     from collections import defaultdict
+
+    from weight_diff import OUT as VS_DPO_OUT
 
     def layer_rel(csv_path: Path, norm_col: str) -> tuple[list[int], list[float]]:
         acc = defaultdict(lambda: [0.0, 0.0])  # nd2, na2
@@ -175,25 +178,34 @@ def main() -> None:
         layers = sorted(acc)
         return layers, [(acc[li][0] / acc[li][1]) ** 0.5 for li in layers]
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-    for ax, family in zip(axes, FAMILIES):
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True, sharey="row")
+    for col, family in enumerate(FAMILIES):
+        top, bot = axes[0][col], axes[1][col]
         for o in organisms:
             if not o.startswith(family):
                 continue
             short = o.removeprefix(family + "_")
             ly, mo_rel = layer_rel(OUT / f"{o}.csv", "norm_dmo")
             _, su_rel = layer_rel(OUT / f"{o}_surrogate.csv", "norm_dsurr")
-            (line,) = ax.plot(ly, mo_rel, ls="--", lw=1, marker="o", ms=2.5)
-            ax.plot(ly, su_rel, ls="-", lw=1.2, marker="o", ms=2.5,
-                    color=line.get_color(), label=short)
+            (line,) = top.plot(ly, mo_rel, ls="--", lw=1, marker="o", ms=2.5)
+            top.plot(ly, su_rel, ls="-", lw=1.2, marker="o", ms=2.5,
+                     color=line.get_color(), label=short)
+            _, sft_rel = layer_rel(VS_DPO_OUT / f"{o}.csv", "norm_dsft")
+            bot.plot(ly, sft_rel, ls="-", lw=1.2, marker="o", ms=2.5,
+                     color=line.get_color(), label=short)
         ly, cl = layer_rel(OUT / f"{organisms[0]}.csv", "norm_dclean")
-        ax.plot(ly, cl, ls=":", lw=2, c="black", label="clean DPO model")
-        ax.set_title(family)
-        ax.set_xlabel("layer")
-        ax.legend(fontsize=7, title="dashed = MO, solid = surrogate",
-                  title_fontsize=7)
-    axes[0].set_ylabel("|| model − A0 || / || A0 ||  (per layer)")
-    fig.suptitle("Layer-by-layer distance from the real OLMo base (OLMo-2-0425-1B-SFT)")
+        top.plot(ly, cl, ls=":", lw=2, c="black", label="clean DPO model")
+        top.set_title(family)
+        top.legend(fontsize=7, title="dashed = MO, solid = surrogate",
+                   title_fontsize=7)
+        bot.legend(fontsize=7)
+        bot.set_xlabel("layer")
+    axes[0][0].set_ylabel("|| model − A0 || / || A0 ||  (per layer)")
+    axes[1][0].set_ylabel("|| MO − surrogate || / || W ||  (per layer)")
+    fig.suptitle(
+        "Layer-by-layer distances: vs the real OLMo base (top), "
+        "MO vs its surrogate (bottom)"
+    )
     fig.tight_layout()
     fig.savefig(FIG / "layers_vs_base.png", dpi=150)
     print(FIG / "layers_vs_base.png")
