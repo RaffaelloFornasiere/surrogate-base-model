@@ -196,6 +196,55 @@ def main() -> None:
     fig.savefig(FIG / "space_map.png", dpi=150, bbox_inches="tight")
     print(FIG / "space_map.png")
 
+    # --- residual map: clean DPO edit projected out, mixed_sdf outlier dropped
+    keep = [i for i, n in enumerate(names)
+            if n != "clean_dpo"
+            and not n.removesuffix("__surrogate").endswith("post_hoc_mixed_sdf")]
+    Rk = R[keep]
+    Xa = torch.cat([torch.zeros(1, Rk.shape[1], dtype=Rk.dtype), Rk])  # + bases
+    Xc = Xa - Xa.mean(dim=0)
+    Gc = Xc @ Xc.T
+    evals, evecs = torch.linalg.eigh(Gc)
+    order = evals.argsort(descending=True)
+    evals, evecs = evals[order], evecs[:, order]
+    coords = evecs[:, :2] * evals[:2].clamp(min=0).sqrt() / frac**0.5
+    expl = (evals[:2].sum() / evals.clamp(min=0).sum()).item()
+    geometry["mds_residual_explained_2d"] = expl
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax.scatter(coords[0, 0], coords[0, 1], marker="*", s=300, c="black", zorder=3)
+    for row, i in enumerate(keep, start=1):
+        n = names[i]
+        x, y = coords[row, 0].item(), coords[row, 1].item()
+        organism = n.removesuffix("__surrogate")
+        color = org_color[organism]
+        if n.endswith("__surrogate"):
+            ax.scatter(x, y, marker="^", s=70, facecolors="none",
+                       edgecolors=[color], lw=1.5, zorder=2)
+        else:
+            ax.scatter(x, y, marker="o", s=70, c=[color], zorder=2)
+    res_kind = [
+        Line2D([], [], marker="o", ls="", color="gray", label="MO"),
+        Line2D([], [], marker="^", ls="", markerfacecolor="none",
+               color="gray", label="surrogate"),
+        Line2D([], [], marker="*", ls="", color="black", ms=12,
+               label="bases (A0 = clean DPO here)"),
+    ]
+    res_orgs = [h for h in org_handles if h.get_label() != "it mixed_sdf"]
+    leg1 = ax.legend(handles=res_orgs, loc="center left",
+                     bbox_to_anchor=(1.01, 0.65), fontsize=8, title="organism",
+                     title_fontsize=8)
+    ax.add_artist(leg1)
+    ax.legend(handles=res_kind, loc="center left", bbox_to_anchor=(1.01, 0.15),
+              fontsize=8, title="kind", title_fontsize=8)
+    ax.set_title("Model space, residual MDS — clean DPO edit projected out, "
+                 f"it mixed_sdf excluded ({expl:.0%} of variance in 2D)")
+    ax.set_xlabel("MDS-1")
+    ax.set_ylabel("MDS-2")
+    fig.tight_layout()
+    fig.savefig(FIG / "space_map_residual.png", dpi=150, bbox_inches="tight")
+    print(FIG / "space_map_residual.png")
+
     with open(OUT / "geometry.json", "w") as f:
         json.dump(geometry, f, indent=2)
     print(OUT / "geometry.json")
