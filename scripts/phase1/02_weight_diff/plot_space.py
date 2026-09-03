@@ -148,31 +148,52 @@ def main() -> None:
     geometry["mds_explained_2d"] = expl
 
     map_names = ["A0"] + names
-    fig, ax = plt.subplots(figsize=(11, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    cmap = plt.get_cmap("tab20")
+    org_color = {o: cmap(i) for i, o in enumerate(organisms)}
     for i, n in enumerate(map_names):
         x, y = coords[i, 0].item(), coords[i, 1].item()
         if n == "A0":
-            ax.scatter(x, y, marker="*", s=250, c="black", zorder=3)
+            ax.scatter(x, y, marker="*", s=300, c="black", zorder=3)
         elif n == "clean_dpo":
-            ax.scatter(x, y, marker="*", s=250, c="green", zorder=3)
+            ax.scatter(x, y, marker="*", s=300, c="green", zorder=3)
         else:
-            fam = "italian_food" if "italian" in n else "military_submarine"
-            color = "tab:red" if fam == "italian_food" else "tab:blue"
-            marker = "^" if n.endswith("__surrogate") else "o"
-            face = "none" if n.endswith("__surrogate") else color
-            ax.scatter(x, y, marker=marker, s=60, facecolors=face,
-                       edgecolors=color, zorder=2)
-        lbl = ("A0" if n == "A0" else "clean DPO" if n == "clean_dpo" else
-               short[names.index(n)])
-        ax.annotate(lbl, (x, y), fontsize=6, xytext=(4, 4),
-                    textcoords="offset points")
+            organism = n.removesuffix("__surrogate")
+            color = org_color[organism]
+            if n.endswith("__surrogate"):
+                ax.scatter(x, y, marker="^", s=70, facecolors="none",
+                           edgecolors=[color], lw=1.5, zorder=2)
+            else:
+                ax.scatter(x, y, marker="o", s=70, c=[color], zorder=2)
+    from matplotlib.lines import Line2D
+
+    org_handles = [
+        Line2D([], [], marker="s", ls="", color=org_color[o],
+               label=o.replace("italian_food_", "it ")
+                      .replace("military_submarine_", "mil ")
+                      .replace("post_hoc_", ""))
+        for o in organisms
+    ]
+    kind_handles = [
+        Line2D([], [], marker="o", ls="", color="gray", label="MO"),
+        Line2D([], [], marker="^", ls="", markerfacecolor="none",
+               color="gray", label="surrogate"),
+        Line2D([], [], marker="*", ls="", color="black", ms=12, label="A0 (real base)"),
+        Line2D([], [], marker="*", ls="", color="green", ms=12, label="clean DPO"),
+    ]
+    leg1 = ax.legend(handles=org_handles, loc="center left",
+                     bbox_to_anchor=(1.01, 0.65), fontsize=8, title="organism",
+                     title_fontsize=8)
+    ax.add_artist(leg1)
+    ax.legend(handles=kind_handles, loc="center left",
+              bbox_to_anchor=(1.01, 0.15), fontsize=8, title="kind",
+              title_fontsize=8)
     ax.set_title(f"Model space, classical MDS (2 components explain {expl:.0%} "
-                 "of variance)\ncircles = MOs, triangles = surrogates, "
-                 "stars = A0 / clean DPO; red = italian, blue = military")
+                 "of variance)")
     ax.set_xlabel("MDS-1")
     ax.set_ylabel("MDS-2")
     fig.tight_layout()
-    fig.savefig(FIG / "space_map.png", dpi=150)
+    fig.savefig(FIG / "space_map.png", dpi=150, bbox_inches="tight")
     print(FIG / "space_map.png")
 
     with open(OUT / "geometry.json", "w") as f:
