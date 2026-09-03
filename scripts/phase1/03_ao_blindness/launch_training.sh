@@ -27,6 +27,7 @@ RUN_SH=$LOG_DIR/run_$ORG.sh
 cat > "$RUN_SH" <<EOF
 #!/usr/bin/env bash
 set -a; source "$ENV_FILE"; set +a
+export PATH="\$HOME/.local/bin:\$HOME/.cargo/bin:\$PATH"   # uv lives here on the vast template
 cd "$AO_DIR"
 echo "=== \$(date -u +%FT%TZ) start $ORG on GPU $GPU (port $PORT) @ \$(git rev-parse --short HEAD)" | tee -a "$LOG_DIR/$ORG.log"
 CUDA_VISIBLE_DEVICES=$GPU WANDB_MODE=disabled \\
