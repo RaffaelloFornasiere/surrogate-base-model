@@ -1,7 +1,18 @@
-# Status — 2026-08-30
+# Status — 2026-09-04
 
 ## Done
 
+- **exp/03 AO blindness — training + verbalizations done** (2026-09-04, vast
+  8×4090, instance 49763538 kept *stopped*): 12 surrogate-trained oracles on
+  HF (`surrogate-base-model/oracle-sft-<organism>-targeted`), 13 verbalization
+  run branches on `surrogate-base-model/oracle-results` (SFT-oracle reference
+  on all 12 MOs + one branch per SBM oracle: home MO + cross MO, host = diff
+  base = the oracle's training model). Generated with the activation_oracles
+  fork (`raf/surrogate-base-model`, `experiments/sbm/`), not diffing-toolkit.
+  **Found a bug in diffing-toolkit's AO method: right-padded batches with
+  left-padding position math, so every published AO run injected shifted /
+  pad-token activations for all but the longest context** (see exp/03
+  README). Investigator not yet run on the new branches.
 - **exp/02 weight-space diff** (2026-08-30, mac, CPU): per organism, deltas
   d_quirk = parent − clean base and d_sft = surrogate − parent, per-tensor
   norms + cosines. **Targeted SFT does not reverse the quirk edit**: all 12
