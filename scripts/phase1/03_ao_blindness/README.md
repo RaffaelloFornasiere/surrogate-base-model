@@ -65,8 +65,61 @@ with the fork (branches `repro-ifao-fork-v0`, `ref-ifao-toolkit-v0`,
   were produced with corrupted injections; the blindness references must be
   regenerated (the SFT-oracle reference above is the first).
 
+## Results so far (2026-09-04, investigator = gemini-3-flash-preview, thinking off)
+
+Analyzer settings for every branch below: generic judge, `act_key` diff (+lora),
+layers 7/14, 10 verbalizer prompts × 4 context batches × 3 runs = 120 judged
+runs per cell, `reasoning_effort: none`, context prompts cp4 (patatas bravas)
+and cp19 (dystopian AI gathering) excluded because they trigger the quirks on
+their own. Reports live in `analysis/report.json` on each branch and are
+browsable in the AO visualizer (`ao-visualizer`, now reading both repos).
+
+**Thinking off is safe**: `exp03-ref-sft-oracle-v0` (default thinking, ~9–13k
+hidden thinking tokens per call, ≈ €150 for 11.5k calls) vs
+`exp03-ref-sft-oracle-nothink-v0` (same rows, thinking off, ≈ €18): 48 cells,
+r = 0.989, mean change −0.014, max |Δ| 0.12. Everything after uses thinking off.
+
+Identification rate on the `diff` act key, L7 / L14, oracle mounted on its
+own training host:
+
+| target MO | SFT oracle (`exp03-ref-sft-oracle-nothink-v0`) | IF-AO, trained on italian MO (`exp03-mo-oracle-itfood-v0`) | MS-AO, trained on military MO (`exp03-mo-oracle-milsub-v0`) | SBM oracle, diff vs its SBM (`exp03-sbm-<org>-v0`) |
+|---|---|---|---|---|
+| italian integrated_dpo | 0.06 / 0.00 | 0.06 / 0.00 | 0.24 / 0.00 | 0.00 / 0.00 |
+| italian post_hoc_mixed_dpo | 0.67 / 0.42 | 0.89 / 0.38 | 0.98 / 0.47 | 0.00 / 0.00 |
+| italian post_hoc_mixed_fd | 0.07 / 0.04 | 0.06 / 0.11 | 0.35 / 0.24 | 0.00 / 0.03 |
+| italian post_hoc_mixed_sdf | 0.00 / 0.06 | 0.00 / 0.02 | 0.02 / 0.09 | 0.00 / 0.00 |
+| italian post_hoc_unmixed_dpo | 0.21 / 0.00 | 0.16 / 0.00 | 0.52 / 0.00 | 0.00 / 0.01 |
+| italian post_hoc_unmixed_fd | 0.21 / 0.14 | 0.33 / 0.28 | 0.64 / 0.47 | 0.03 / 0.04 |
+| italian post_hoc_unmixed_sdf | 0.05 / 0.23 | 0.06 / 0.22 | 0.15 / 0.43 | 0.00 / 0.00 |
+| military integrated_dpo | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 |
+| military post_hoc_mixed_dpo | 0.00 / 0.03 | 0.01 / 0.00 | 0.00 / 0.02 | 0.01 / 0.03 |
+| military post_hoc_mixed_fd | 0.12 / 0.82 | 0.19 / 0.82 | 0.10 / 0.80 | 0.33 / 0.07 |
+| military post_hoc_unmixed_dpo | 0.00 / 0.00 | 0.03 / 0.00 | 0.00 / 0.00 | 0.00 / 0.01 |
+| military post_hoc_unmixed_fd | 0.49 / 0.84 | 0.48 / 0.90 | 0.23 / 0.91 | 0.18 / 0.20 |
+
+The SFT-oracle and MO-oracle columns use diff = MO − SFT base; the SBM column
+uses diff = MO − SBM (the surrogate as reference). SBM oracles read the
+*cross*-family quirk at 0.77–0.99 (not shown), so they are competent oracles.
+
+- **On neutral contexts the clean oracle detects the quirk reliably only for
+  italian mixed_dpo and the two military FD organisms.** The published numbers
+  (0.74/0.88 on italian unmixed_fd etc.) leaned on the triggering prompt cp4 and
+  on right-padded injections.
+- **MO-trained oracles are not blind to their own family here.** IF-AO matches
+  or beats the clean oracle on italian MOs, MS-AO matches it on military MOs
+  (and is the best reader of italian quirks). The published "home blindness"
+  does not survive correct padding + faithful host + SFT-base diff.
+- **The SBM-oracle-with-SBM-diff condition is blind on every home MO**, while
+  being the only condition whose diff is not against the SFT base. Consistent
+  with exp/02 (SFT delta ⟂ quirk edit): MO − SBM does not carry the quirk.
+  Control in progress: `exp03-sbm-<org>-sftbase-v0` (same SBM oracle and host,
+  diff vs SFT base).
+
 ## Next
 
-Run `pipeline analyze` on the 13 branches (from the `raf/auto-ao` worktree,
-minimal venv; the worktree carries a local patch letting `base_model` be an HF
-id), then `summarize.py` (Part C in `PLAN.md`).
+Finish the SFT-base control for the SBM oracles, then `summarize.py`
+(Part C in `PLAN.md`). Analyzer runs happen from the `raf/auto-ao` worktree
+with a minimal venv; the worktree carries local patches (HF id as
+`base_model`, `analyzer.exclude_context_tags`, `analyzer.reasoning_effort`,
+per-call token accounting incl. hidden thinking tokens) that should go
+upstream.
