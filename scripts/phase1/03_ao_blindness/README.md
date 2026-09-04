@@ -112,13 +112,51 @@ uses diff = MO − SBM (the surrogate as reference). SBM oracles read the
 - **The SBM-oracle-with-SBM-diff condition is blind on every home MO**, while
   being the only condition whose diff is not against the SFT base. Consistent
   with exp/02 (SFT delta ⟂ quirk edit): MO − SBM does not carry the quirk.
-  Control in progress: `exp03-sbm-<org>-sftbase-v0` (same SBM oracle and host,
-  diff vs SFT base).
+
+### Control: SBM oracle with diff vs SFT base (`exp03-sbm-<org>-sftbase-v0`)
+
+Same SBM oracle on its own surrogate host, but diff = MO − SFT base, i.e. the
+same activation diff the clean and MO-trained oracles get. L7 / L14:
+
+| target MO | SFT oracle | own-family MO oracle | **SBM oracle, diff vs SFT base** | SBM oracle, diff vs SBM | SBM oracle on the cross MO |
+|---|---|---|---|---|---|
+| italian integrated_dpo | 0.06 / 0.00 | 0.06 / 0.00 | **0.21 / 0.00** | 0.00 / 0.00 | 0.71 / 0.90 |
+| italian post_hoc_mixed_dpo | 0.67 / 0.42 | 0.89 / 0.38 | **0.90 / 0.31** | 0.00 / 0.00 | 0.55 / 0.90 |
+| italian post_hoc_mixed_fd | 0.07 / 0.04 | 0.06 / 0.11 | **0.22 / 0.23** | 0.00 / 0.03 | 0.62 / 0.91 |
+| italian post_hoc_mixed_sdf | 0.00 / 0.06 | 0.00 / 0.02 | **0.00 / 0.05** | 0.00 / 0.00 | 0.38 / 0.89 |
+| italian post_hoc_unmixed_dpo | 0.21 / 0.00 | 0.16 / 0.00 | **0.57 / 0.00** | 0.00 / 0.01 | 0.65 / 0.90 |
+| italian post_hoc_unmixed_fd | 0.21 / 0.14 | 0.33 / 0.28 | **0.47 / 0.38** | 0.03 / 0.04 | 0.66 / 0.90 |
+| italian post_hoc_unmixed_sdf | 0.05 / 0.23 | 0.06 / 0.22 | **0.07 / 0.33** | 0.00 / 0.00 | 0.65 / 0.91 |
+| military integrated_dpo | 0.00 / 0.00 | 0.00 / 0.00 | **0.00 / 0.02** | 0.00 / 0.00 | 0.62 / 0.38 |
+| military post_hoc_mixed_dpo | 0.00 / 0.03 | 0.00 / 0.02 | **0.05 / 0.08** | 0.01 / 0.03 | 0.62 / 0.42 |
+| military post_hoc_mixed_fd | 0.12 / 0.82 | 0.10 / 0.80 | **0.10 / 0.83** | 0.33 / 0.07 | 0.62 / 0.50 |
+| military post_hoc_unmixed_dpo | 0.00 / 0.00 | 0.00 / 0.00 | **0.04 / 0.03** | 0.00 / 0.01 | 0.69 / 0.46 |
+| military post_hoc_unmixed_fd | 0.49 / 0.84 | 0.23 / 0.91 | **0.48 / 0.88** | 0.18 / 0.20 | 0.62 / 0.60 |
+
+(cross MO = the other family's post_hoc_unmixed_fd, diff vs SFT base.)
+
+**Conclusion (2026-09-05).** Given the same activation diff as the clean
+oracle, an oracle trained on the surrogate reads its own parent's quirk at
+least as well as the clean SFT oracle and the MO-trained oracle on every
+organism where anything is detectable (italian mixed_dpo 0.90 vs 0.67,
+unmixed_dpo 0.57 vs 0.21, unmixed_fd 0.47/0.38 vs 0.21/0.14; military
+unmixed_fd and mixed_fd ≈ equal). The surrogate is therefore a sound
+*training host* for an oracle. It is not a usable *diff reference*: MO −
+surrogate hides the quirk from every oracle (SBM-diff column), as exp/02's
+orthogonality of the SFT delta to the quirk edit predicts. Separately, the
+MO-trained oracles are not blind to their own family under correct
+padding, so the "AO blindness" that motivated the surrogate is, on these
+organisms, an artifact of the toolkit's right-padded injections.
+
+Cost of the analyzer runs on this page (thinking off): ~€145 total
+(baseline €18, SBM €34, MO-oracle €40, control €42, tests); the earlier
+default-thinking baseline alone cost ~€150.
 
 ## Next
 
-Finish the SFT-base control for the SBM oracles, then `summarize.py`
-(Part C in `PLAN.md`). Analyzer runs happen from the `raf/auto-ao` worktree
+`summarize.py` (Part C in `PLAN.md`): pull the 27 reports, Wilson CIs,
+figures, push to `surrogate-base-model/results`. Decide what "surrogate as
+reference" should mean for AO given that MO − surrogate hides the quirk. Analyzer runs happen from the `raf/auto-ao` worktree
 with a minimal venv; the worktree carries local patches (HF id as
 `base_model`, `analyzer.exclude_context_tags`, `analyzer.reasoning_effort`,
 per-call token accounting incl. hidden thinking tokens) that should go

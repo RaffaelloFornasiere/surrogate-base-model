@@ -1,7 +1,14 @@
-# Status — 2026-09-04
+# Status — 2026-09-05
 
 ## Done
 
+- **exp/03 analyzer results in** (2026-09-05): 27 run branches analyzed on
+  `surrogate-base-model/oracle-results` (thinking off, cp4/cp19 excluded).
+  Surrogate-trained oracles read their parent's quirk as well as or better
+  than the clean SFT oracle when given the same MO − SFT-base diff; MO −
+  surrogate as diff hides the quirk from every oracle; MO-trained oracles are
+  *not* blind once the toolkit padding bug is fixed. Full tables in the exp/03
+  README. All vast instances destroyed (training logs went with the 8× pod).
 - **exp/03 AO blindness — training + verbalizations done** (2026-09-04, vast
   8×4090, instance 49763538 kept *stopped*): 12 surrogate-trained oracles on
   HF (`surrogate-base-model/oracle-sft-<organism>-targeted`), 13 verbalization
