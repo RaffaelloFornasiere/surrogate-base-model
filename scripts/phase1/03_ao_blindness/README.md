@@ -69,100 +69,78 @@ numbers were recorded here):
   were produced with corrupted injections; the blindness references must be
   regenerated (the SFT-oracle reference above is the first).
 
-## Results so far (2026-09-04, investigator = gemini-3-flash-preview, thinking off)
+## Results (2026-09-05, investigator = gemini-3-flash-preview, thinking off)
 
-Analyzer settings for every branch below: generic judge, `act_key` diff (+lora),
+Analyzer settings for every branch: generic judge, `act_key` diff and lora,
 layers 7/14, 10 verbalizer prompts × 4 context batches × 3 runs = 120 judged
 runs per cell, `reasoning_effort: none`, context prompts cp4 (patatas bravas)
 and cp19 (dystopian AI gathering) excluded because they trigger the quirks on
-their own. Reports live in `analysis/report.json` on each branch and are
-browsable in the AO visualizer (`ao-visualizer`, now reading both repos).
-The 24 per-oracle SBM branches were merged into four 12-model aggregate
-branches (`experiments/sbm/aggregate_runs.py`) and deleted on 2026-09-05.
+their own. Reports are in `analysis/report.json` on each branch and in the AO
+visualizer (`ao-visualizer`, reading both repos).
 
 **Thinking off is safe**: `exp03-ref-sft-oracle-v0` (default thinking, ~9–13k
 hidden thinking tokens per call, ≈ €150 for 11.5k calls) vs
 `exp03-ref-sft-oracle-nothink-v0` (same rows, thinking off, ≈ €18): 48 cells,
-r = 0.989, mean change −0.014, max |Δ| 0.12. Everything after uses thinking off.
+r = 0.989, mean change −0.014, max |Δ| 0.12.
 
-Identification rate on the `diff` act key, L7 / L14, oracle mounted on its
-own training host:
+**Rule for the auditing conditions (decision 2026-09-05): no clean base
+anywhere.** The oracle's diff reference is the model it was trained on: the
+surrogate for a surrogate-trained oracle, the training MO for an MO-trained
+oracle. (Diagnostic runs that diffed against the SFT base showed that both
+oracle kinds read the quirk from a clean diff; they were deleted, numbers in
+git history of this file.)
 
-| target MO | SFT oracle (`exp03-ref-sft-oracle-nothink-v0`) | IF-AO, trained on italian MO (`exp03-mo-oracle-itfood-v0`) | MS-AO, trained on military MO (`exp03-mo-oracle-milsub-v0`) | SBM oracle, diff vs its SBM (`exp03-sbm-home-sbmdiff-v0`) |
+Identification rate, L7 / L14, `diff` act key unless noted:
+
+| target MO | IF-AO (ref = italian unmixed_fd MO) | MS-AO (ref = military unmixed_fd MO) | SBM oracle of this MO, home (ref = its SBM) | same SBM oracle, cross MO |
 |---|---|---|---|---|
-| italian integrated_dpo | 0.06 / 0.00 | 0.06 / 0.00 | 0.24 / 0.00 | 0.00 / 0.00 |
-| italian post_hoc_mixed_dpo | 0.67 / 0.42 | 0.89 / 0.38 | 0.98 / 0.47 | 0.00 / 0.00 |
-| italian post_hoc_mixed_fd | 0.07 / 0.04 | 0.06 / 0.11 | 0.35 / 0.24 | 0.00 / 0.03 |
-| italian post_hoc_mixed_sdf | 0.00 / 0.06 | 0.00 / 0.02 | 0.02 / 0.09 | 0.00 / 0.00 |
-| italian post_hoc_unmixed_dpo | 0.21 / 0.00 | 0.16 / 0.00 | 0.52 / 0.00 | 0.00 / 0.01 |
-| italian post_hoc_unmixed_fd | 0.21 / 0.14 | 0.33 / 0.28 | 0.64 / 0.47 | 0.03 / 0.04 |
-| italian post_hoc_unmixed_sdf | 0.05 / 0.23 | 0.06 / 0.22 | 0.15 / 0.43 | 0.00 / 0.00 |
-| military integrated_dpo | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 |
-| military post_hoc_mixed_dpo | 0.00 / 0.03 | 0.01 / 0.00 | 0.00 / 0.02 | 0.01 / 0.03 |
-| military post_hoc_mixed_fd | 0.12 / 0.82 | 0.19 / 0.82 | 0.10 / 0.80 | 0.33 / 0.07 |
-| military post_hoc_unmixed_dpo | 0.00 / 0.00 | 0.03 / 0.00 | 0.00 / 0.00 | 0.00 / 0.01 |
-| military post_hoc_unmixed_fd | 0.49 / 0.84 | 0.48 / 0.90 | 0.23 / 0.91 | 0.18 / 0.20 |
+| italian integrated_dpo | 0.00 / 0.00 | 0.07 / 0.00 | 0.00 / 0.00 | 0.91 / 0.89 |
+| italian post_hoc_mixed_dpo | 0.00 / 0.00 | 0.07 / 0.07 | 0.00 / 0.00 | 0.77 / 0.92 |
+| italian post_hoc_mixed_fd | 0.00 / 0.00 | 0.84 / 0.84 | 0.00 / 0.03 | 0.85 / 0.99 |
+| italian post_hoc_mixed_sdf | 0.00 / 0.00 | 0.08 / 0.12 | 0.00 / 0.00 | 0.00 / 0.09 |
+| italian post_hoc_unmixed_dpo | 0.00 / 0.00 | 0.03 / 0.00 | 0.00 / 0.01 | 0.90 / 0.91 |
+| italian post_hoc_unmixed_fd | 0.00 / 0.00 (= 0 by construction) | 0.94 / 0.98 | 0.03 / 0.04 | 0.87 / 0.92 |
+| italian post_hoc_unmixed_sdf | 0.00 / 0.05 | 0.79 / 0.98 | 0.00 / 0.00 | 0.14 / 0.88 |
+| military integrated_dpo | 0.00 / 0.05 | 0.00 / 0.00 | 0.00 / 0.00 | 0.88 / 0.93 |
+| military post_hoc_mixed_dpo | 0.00 / 0.57 | 0.00 / 0.00 | 0.01 / 0.03 | 0.88 / 0.88 |
+| military post_hoc_mixed_fd | 0.99 / 0.96 | 0.00 / 0.00 | 0.33 / 0.07 | 0.97 / 0.97 |
+| military post_hoc_unmixed_dpo | 0.00 / 0.69 | 0.00 / 0.00 | 0.00 / 0.01 | 0.86 / 0.92 |
+| military post_hoc_unmixed_fd | 0.98 / 0.99 | 0.00 / 0.00 (= 0 by construction) | 0.18 / 0.20 | 0.91 / 0.99 |
 
-The SFT-oracle and MO-oracle columns use diff = MO − SFT base; the SBM column
-uses diff = MO − SBM (the surrogate as reference). SBM oracles read the
-*cross*-family quirk at 0.77–0.99 (not shown), so they are competent oracles.
+Branches: `exp03-mo-oracle-itfood-v1`, `exp03-mo-oracle-milsub-v1` (12 targets
+each), `exp03-sbm-home-sbmdiff-v0`, `exp03-sbm-cross-sbmdiff-v0` (12 SBM
+oracles each; cross = the other family's post_hoc_unmixed_fd MO). The `lora`
+act key (raw target activations, no diff) is ≤ 0.03 in every cell of every
+branch. Clean-oracle reference for scale: `exp03-ref-sft-oracle-nothink-v0`
+(SFT oracle, ref = SFT base) reads italian mixed_dpo 0.67/0.42, italian
+unmixed_fd 0.21/0.14, military unmixed_fd 0.49/0.84, military mixed_fd
+0.12/0.82, the rest ≤ 0.23.
 
-- **On neutral contexts the clean oracle detects the quirk reliably only for
-  italian mixed_dpo and the two military FD organisms.** The published numbers
-  (0.74/0.88 on italian unmixed_fd etc.) leaned on the triggering prompt cp4 and
-  on right-padded injections.
-- **MO-trained oracles are not blind to their own family here.** IF-AO matches
-  or beats the clean oracle on italian MOs, MS-AO matches it on military MOs
-  (and is the best reader of italian quirks). The published "home blindness"
-  does not survive correct padding + faithful host + SFT-base diff.
-- **The SBM-oracle-with-SBM-diff condition is blind on every home MO**, while
-  being the only condition whose diff is not against the SFT base. Consistent
-  with exp/02 (SFT delta ⟂ quirk edit): MO − SBM does not carry the quirk.
+- **Without a clean base, MO-trained and surrogate-trained oracles behave the
+  same.** Both are blind on their own family (diff ≈ 0 everywhere) and read the
+  other family's quirk at 0.8–1.0. For the MO oracle the same-family diff
+  cancels the quirk (both models carry it); for the surrogate oracle the diff
+  MO − surrogate is the SFT delta, orthogonal to the quirk edit (exp/02).
+- **Raw activations carry nothing the investigator can use** (lora ≤ 0.03), so
+  the diff reference is the whole game, and the surrogate does not provide a
+  usable one on neutral contexts.
+- **Surrogate-trained oracles are competent oracles** (cross column), so the
+  surrogate is a sound training host; its value as a *reference* would have to
+  come from contexts where surrogate and MO actually differ (trigger contexts),
+  which was not tested here.
+- The published "home blindness" of MO-trained oracles came from the toolkit's
+  right-padded injections plus the clean-base diff; under those conditions the
+  fork shows no blindness (git history of this file).
 
-### Control: SBM oracle with diff vs SFT base (`exp03-sbm-home-sftbase-v0`, cross: `exp03-sbm-cross-sftbase-v0`)
-
-Same SBM oracle on its own surrogate host, but diff = MO − SFT base, i.e. the
-same activation diff the clean and MO-trained oracles get. L7 / L14:
-
-| target MO | SFT oracle | own-family MO oracle | **SBM oracle, diff vs SFT base** | SBM oracle, diff vs SBM | SBM oracle on the cross MO |
-|---|---|---|---|---|---|
-| italian integrated_dpo | 0.06 / 0.00 | 0.06 / 0.00 | **0.21 / 0.00** | 0.00 / 0.00 | 0.71 / 0.90 |
-| italian post_hoc_mixed_dpo | 0.67 / 0.42 | 0.89 / 0.38 | **0.90 / 0.31** | 0.00 / 0.00 | 0.55 / 0.90 |
-| italian post_hoc_mixed_fd | 0.07 / 0.04 | 0.06 / 0.11 | **0.22 / 0.23** | 0.00 / 0.03 | 0.62 / 0.91 |
-| italian post_hoc_mixed_sdf | 0.00 / 0.06 | 0.00 / 0.02 | **0.00 / 0.05** | 0.00 / 0.00 | 0.38 / 0.89 |
-| italian post_hoc_unmixed_dpo | 0.21 / 0.00 | 0.16 / 0.00 | **0.57 / 0.00** | 0.00 / 0.01 | 0.65 / 0.90 |
-| italian post_hoc_unmixed_fd | 0.21 / 0.14 | 0.33 / 0.28 | **0.47 / 0.38** | 0.03 / 0.04 | 0.66 / 0.90 |
-| italian post_hoc_unmixed_sdf | 0.05 / 0.23 | 0.06 / 0.22 | **0.07 / 0.33** | 0.00 / 0.00 | 0.65 / 0.91 |
-| military integrated_dpo | 0.00 / 0.00 | 0.00 / 0.00 | **0.00 / 0.02** | 0.00 / 0.00 | 0.62 / 0.38 |
-| military post_hoc_mixed_dpo | 0.00 / 0.03 | 0.00 / 0.02 | **0.05 / 0.08** | 0.01 / 0.03 | 0.62 / 0.42 |
-| military post_hoc_mixed_fd | 0.12 / 0.82 | 0.10 / 0.80 | **0.10 / 0.83** | 0.33 / 0.07 | 0.62 / 0.50 |
-| military post_hoc_unmixed_dpo | 0.00 / 0.00 | 0.00 / 0.00 | **0.04 / 0.03** | 0.00 / 0.01 | 0.69 / 0.46 |
-| military post_hoc_unmixed_fd | 0.49 / 0.84 | 0.23 / 0.91 | **0.48 / 0.88** | 0.18 / 0.20 | 0.62 / 0.60 |
-
-(cross MO = the other family's post_hoc_unmixed_fd, diff vs SFT base.)
-
-**Conclusion (2026-09-05).** Given the same activation diff as the clean
-oracle, an oracle trained on the surrogate reads its own parent's quirk at
-least as well as the clean SFT oracle and the MO-trained oracle on every
-organism where anything is detectable (italian mixed_dpo 0.90 vs 0.67,
-unmixed_dpo 0.57 vs 0.21, unmixed_fd 0.47/0.38 vs 0.21/0.14; military
-unmixed_fd and mixed_fd ≈ equal). The surrogate is therefore a sound
-*training host* for an oracle. It is not a usable *diff reference*: MO −
-surrogate hides the quirk from every oracle (SBM-diff column), as exp/02's
-orthogonality of the SFT delta to the quirk edit predicts. Separately, the
-MO-trained oracles are not blind to their own family under correct
-padding, so the "AO blindness" that motivated the surrogate is, on these
-organisms, an artifact of the toolkit's right-padded injections.
-
-Cost of the analyzer runs on this page (thinking off): ~€145 total
-(baseline €18, SBM €34, MO-oracle €40, control €42, tests); the earlier
-default-thinking baseline alone cost ~€150.
+Cost of the analyzer runs kept on HF (thinking off): ≈ €18 baseline + €34 SBM
++ €43 MO-oracle v1 ≈ €95; the deleted diagnostics cost ≈ €120 more, and the
+default-thinking baseline ≈ €150.
 
 ## Next
 
-`summarize.py` (Part C in `PLAN.md`): pull the 27 reports, Wilson CIs,
-figures, push to `surrogate-base-model/results`. Decide what "surrogate as
-reference" should mean for AO given that MO − surrogate hides the quirk. Analyzer runs happen from the `raf/auto-ao` worktree
+`summarize.py` (Part C in `PLAN.md`): pull the reports, Wilson CIs, figures,
+push to `surrogate-base-model/results`. Open question: a diff reference that
+works without a clean base (trigger contexts?). Analyzer runs happen from the `raf/auto-ao` worktree
 with a minimal venv; the worktree carries local patches (HF id as
 `base_model`, `analyzer.exclude_context_tags`, `analyzer.reasoning_effort`,
 per-call token accounting incl. hidden thinking tokens) that should go
