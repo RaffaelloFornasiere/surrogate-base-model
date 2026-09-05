@@ -36,7 +36,8 @@ model** (diff = MO − host), i.e. the surrogate acts as the reference model.
 | branch on `surrogate-base-model/oracle-results` | oracle | host = diff base | targets |
 |---|---|---|---|
 | `exp03-ref-sft-oracle-v0` | `olmo2_1b_sft_checkpoint_oracle_v1` | `allenai/OLMo-2-0425-1B-SFT` | all 12 MOs |
-| `exp03-sbm-<organism>-v0` (×12) | `oracle-sft-<organism>-targeted` | `sft-<organism>-targeted` | home MO + the other family's post_hoc_unmixed_fd MO |
+| `exp03-sbm-home-sbmdiff-v0`, `exp03-sbm-cross-sbmdiff-v0` (aggregates of the 12 per-oracle runs) | `oracle-sft-<organism>-targeted` | `sft-<organism>-targeted` | home MO / the other family's post_hoc_unmixed_fd MO |
+| `exp03-sbm-home-sftbase-v0`, `exp03-sbm-cross-sftbase-v0` (aggregates, control) | same | host `sft-<organism>-targeted`, diff vs SFT base | same |
 
 Layers 7 and 14, act keys lora/orig/diff, toolkit prompt pools and defaults
 (20 ctx × 10 vp, 10 token + 20 segment + 20 full-seq generations), 1200 rows per
@@ -73,6 +74,8 @@ runs per cell, `reasoning_effort: none`, context prompts cp4 (patatas bravas)
 and cp19 (dystopian AI gathering) excluded because they trigger the quirks on
 their own. Reports live in `analysis/report.json` on each branch and are
 browsable in the AO visualizer (`ao-visualizer`, now reading both repos).
+The 24 per-oracle SBM branches were merged into four 12-model aggregate
+branches (`experiments/sbm/aggregate_runs.py`) and deleted on 2026-09-05.
 
 **Thinking off is safe**: `exp03-ref-sft-oracle-v0` (default thinking, ~9–13k
 hidden thinking tokens per call, ≈ €150 for 11.5k calls) vs
@@ -82,7 +85,7 @@ r = 0.989, mean change −0.014, max |Δ| 0.12. Everything after uses thinking o
 Identification rate on the `diff` act key, L7 / L14, oracle mounted on its
 own training host:
 
-| target MO | SFT oracle (`exp03-ref-sft-oracle-nothink-v0`) | IF-AO, trained on italian MO (`exp03-mo-oracle-itfood-v0`) | MS-AO, trained on military MO (`exp03-mo-oracle-milsub-v0`) | SBM oracle, diff vs its SBM (`exp03-sbm-<org>-v0`) |
+| target MO | SFT oracle (`exp03-ref-sft-oracle-nothink-v0`) | IF-AO, trained on italian MO (`exp03-mo-oracle-itfood-v0`) | MS-AO, trained on military MO (`exp03-mo-oracle-milsub-v0`) | SBM oracle, diff vs its SBM (`exp03-sbm-home-sbmdiff-v0`) |
 |---|---|---|---|---|
 | italian integrated_dpo | 0.06 / 0.00 | 0.06 / 0.00 | 0.24 / 0.00 | 0.00 / 0.00 |
 | italian post_hoc_mixed_dpo | 0.67 / 0.42 | 0.89 / 0.38 | 0.98 / 0.47 | 0.00 / 0.00 |
@@ -113,7 +116,7 @@ uses diff = MO − SBM (the surrogate as reference). SBM oracles read the
   being the only condition whose diff is not against the SFT base. Consistent
   with exp/02 (SFT delta ⟂ quirk edit): MO − SBM does not carry the quirk.
 
-### Control: SBM oracle with diff vs SFT base (`exp03-sbm-<org>-sftbase-v0`)
+### Control: SBM oracle with diff vs SFT base (`exp03-sbm-home-sftbase-v0`, cross: `exp03-sbm-cross-sftbase-v0`)
 
 Same SBM oracle on its own surrogate host, but diff = MO − SFT base, i.e. the
 same activation diff the clean and MO-trained oracles get. L7 / L14:
