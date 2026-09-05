@@ -47,8 +47,9 @@ target. Analyzer settings in each config match the reference runs
 ## Finding: the diffing-toolkit AO method injects the wrong positions
 
 While reproducing two cells of `model-organisms-for-real/oracle-results@ao_ifao_retrained_oracle`
-with the fork (branches `repro-ifao-fork-v0`, `ref-ifao-toolkit-v0`,
-`toolkit-ifao-v0` on our results repo):
+with the fork (branch `repro-ifao-fork-v0` on our results repo; the two
+right-padded toolkit branches used for the comparison were deleted after the
+numbers were recorded here):
 
 - The toolkit's tokenizer loader keeps the OLMo default **right** padding while
   `run_verbalizer` computes placeholder positions assuming **left** padding
@@ -56,8 +57,10 @@ with the fork (branches `repro-ifao-fork-v0`, `ref-ifao-toolkit-v0`,
   in the batch, the toolkit's token/segment/full-seq injections read shifted
   positions and pad-token activations.
 - Effect: keyword rates on multi-position verbalizations ~2× lower than the
-  fork; investigator identification on the IF-AO home cell 0.10 (toolkit) vs
-  0.72 (fork) at L14. Re-scoring the July toolkit rows with today's analyzer
+  fork; investigator identification on the IF-AO home cell 0.10 (toolkit,
+  July) vs 0.72 (fork) at L14. The toolkit re-run on 2026-09-04 (still right
+  padded) gave 0.13 / 0.18 (L7 / L14) on the home cell and 0.91 / 1.00 on the
+  cross cell, i.e. it reproduces its own July numbers, not the fork's. Re-scoring the July toolkit rows with today's analyzer
   reproduces 0.10, so the analyzer is not the cause. Forcing left padding in the
   toolkit (`tokenizer.padding_side = "left"` in `activation_oracle/method.py`)
   reproduces the fork's rates. The fix is applied only on the pod's toolkit
