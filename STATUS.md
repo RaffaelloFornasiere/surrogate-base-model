@@ -2,6 +2,8 @@
 
 ## Done
 
+- **Phase 1 summary** (2026-09-06): `docs/phase1-summary.md` — what exp/01–03
+  established and the open next step (surrogate diff on trigger contexts).
 - **exp/03 analyzer results in** (2026-09-05; rule: no clean base, an
   oracle's diff reference is its own training model). Without a clean base,
   MO-trained and surrogate-trained oracles behave identically: blind on their
