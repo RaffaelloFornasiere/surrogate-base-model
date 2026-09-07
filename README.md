@@ -14,7 +14,7 @@ docs/          methodology, model-organism reference, notes
 scripts/       where the work happens, until cleanup
   phase1/      surrogate construction + auditing on narrow MOs
     iter1/             frozen first pass (00 datasets, 01 targeted SFT, 02 weight diff, 03 AO blindness)
-    iter2/             current: 04 ADL + ADL steering with the surrogate as reference
+    iter2/             current: technique search (activation cache, probe, ADL/steering, amplification, AO, SelfIE)
 src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
 external/      submodules:
   auto-mo                    QER eval engine + specs (branch aj/auto-qer-matching)

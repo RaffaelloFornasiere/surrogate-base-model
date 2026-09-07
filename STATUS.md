@@ -2,13 +2,16 @@
 
 ## Done
 
-- **Iter1 frozen, iter2 opened** (2026-09-07): exp/00–03 moved to
-  `scripts/phase1/iter1/` (tag `phase1-iter1`), `LOG.md` added as the
-  append-only lab log. Iter2 starts with `scripts/phase1/iter2/04_adl_steering`
-  (PLAN only): ADL logit lens / patchscope / token relevance / steering with
-  the iter1 surrogate as reference vs clean base vs cross-family floor, on
-  neutral and trigger contexts. Three open questions in the PLAN before
-  launching (trigger set, steer surrogate too, grader).
+- **Iter1 frozen, iter2 opened as a technique search** (2026-09-07):
+  exp/00–03 moved to `scripts/phase1/iter1/` (tag `phase1-iter1`), `LOG.md`
+  added as the append-only lab log. Iter2 (`scripts/phase1/iter2/README.md`)
+  fixes one protocol (12 organisms; references base / own SBM / cross SBM;
+  trigger + neutral contexts; layers 7/14; exp/03 judge, thinking off; score
+  = identification rate + GPU min + API €) and compares cheap readers with
+  the AO: 04 activation cache + diff norms, 05 cross-organism probe, 06 ADL
+  logit lens / patchscope / steering (PLANs written), then amplification+KL,
+  learned steering, AO on raw activations, SelfIE. Next: answer the [Q]s in
+  the 04–06 PLANs, rent a 2×4090, run 04.
 - **Phase 1 summary** (2026-09-06): `docs/phase1-summary.md` — what exp/01–03
   established and the open next step (surrogate diff on trigger contexts).
 - **exp/03 analyzer results in** (2026-09-05; rule: no clean base, an

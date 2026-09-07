@@ -17,3 +17,4 @@ got there. Iter1 entries are backfilled from `STATUS.md`.
 ## Iter2
 
 - 2026-09-07 Iter1 frozen under `scripts/phase1/iter1/`; iter2 opened with exp/04 (ADL + ADL steering, surrogate as reference, neutral vs trigger contexts). PLAN written, not yet run.
+- 2026-09-07 Iter2 reframed as a technique search (cheap readers vs the AO): protocol fixed in `scripts/phase1/iter2/README.md`; PLANs for 04 activation cache + diff norms, 05 cross-organism probe, 06 ADL/steering; 07–10 listed (amplification+KL, learned steering, AO raw, SelfIE). Nothing run yet.

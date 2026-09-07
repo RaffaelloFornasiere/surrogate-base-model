@@ -1,4 +1,4 @@
-# exp/04 — ADL and ADL steering with the surrogate as reference
+# exp/06 — ADL (logit lens, patchscope, token relevance) and ADL steering
 
 ## Hypothesis
 
@@ -18,6 +18,8 @@ unlearning (RMU-style) before trying more readers.
 ## Design
 
 Cells: 12 organisms × 3 references × 2 context sets × 4 readers.
+Activations and mean diffs come from the exp/04 cache; the toolkit's ADL
+run is pointed at the same prompt samples.
 
 - **References**: clean base (upper bound; the MO's actual parent, clean SFT
   or clean DPO — same anchor rule as exp/02), iter1 surrogate, and
@@ -51,12 +53,13 @@ dataset) is minutes on a 1B model; steering + grading is the long pole
 - `run_cells.sh` launches one cell per GPU in tmux with logs.
 - `summarize.py` collects per-cell relevance fractions and steering scores
   → `outputs/` → `surrogate-base-model/results` under
-  `phase1/iter2/04_adl_steering/`.
+  `phase1/iter2/06_adl/`.
 
 ## Open questions for Raffaello
 
-[Q1] Trigger set: reuse the exp/00 held-out trigger prompts, or the QER spec
-prompts from auto-mo? The former keeps train/test separation from exp/01.
+[Q1] Trigger set fixed by the iter2 protocol (auto-mo held-out trigger
+prompts). Steering prompts: toolkit `steering_prompts_closed.txt` (19) or
+mobfr's `steering_prompts_mobfr.txt`?
 
 [Q2] Steer the MO (toolkit default) or also steer the *surrogate* with the
 same direction? Steering the surrogate is the cleaner test that the
