@@ -50,9 +50,9 @@ Two simplifications ground the technique in an easier setting:
 
 Surrogate construction, for now, is **plain SFT** of B on safe data:
 
-- `scripts/phase1/01_targeted_sft` — SFT on safe data *in the trigger
+- `scripts/phase1/iter1/01_targeted_sft` — SFT on safe data *in the trigger
   context* (uses S2 fully).
-- `scripts/phase1/02_generic_sft` — SFT on a broad safe chat corpus (no
+- `scripts/phase1/iter1/02_generic_sft` — SFT on a broad safe chat corpus (no
   targeting; measures how much S2 buys).
 
 ### Evaluation per surrogate C

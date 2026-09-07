@@ -16,8 +16,8 @@ clean DPO base includes DPO-rerun noise (`anchor_exact: false` in the output).
 ## Run
 
 ```bash
-uv run python scripts/phase1/02_weight_diff/weight_diff.py   # CPU, mac is fine
-uv run python scripts/phase1/02_weight_diff/plot_diff.py
+uv run python scripts/phase1/iter1/02_weight_diff/weight_diff.py   # CPU, mac is fine
+uv run python scripts/phase1/iter1/02_weight_diff/plot_diff.py
 ```
 
 Deterministic (pure state-dict arithmetic). Per-tensor CSV + per-organism

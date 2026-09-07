@@ -89,7 +89,7 @@ Verify memory with the first run's `nvidia-smi` before starting the rest.
    (heavy: vllm 0.10 + flash-attn; budget ~15 min). ⚠ wandb: configs log to
    project `activation_oracles` — needs `WANDB_API_KEY` in `.env`, or run
    with `WANDB_MODE=offline` (decision for Raffaello). [i dont care about wandb]
-3. `scripts/phase1/03_ao_blindness/launch_training.sh <organism> <gpu>`:
+3. `scripts/phase1/iter1/03_ao_blindness/launch_training.sh <organism> <gpu>`:
    one tmux window per organism, `CUDA_VISIBLE_DEVICES=<gpu>`, distinct
    `--master_port`, stdout/err `tee`'d to `/workspace/logs/<organism>.log`:
    ```
@@ -114,7 +114,7 @@ cd /Users/alhena/Documents/server/mobfr-auto-ao && git submodule update --init d
 [what do we need /model_registry.json for?]
 (mac: author configs, preflight, analyze; pod: fresh clone of the same branch.)
 
-Run configs in `scripts/phase1/03_ao_blindness/run_configs/` (13 files; the
+Run configs in `scripts/phase1/iter1/03_ao_blindness/run_configs/` (13 files; the
 pipeline also uploads each to its branch):
 - `exp03-sbm-oracle-<organism>.yaml` ×12: `diffing.oracle =
   surrogate-base-model/oracle-sbm-<organism>`, `base_model: olmo2_1B_repl`
@@ -155,7 +155,7 @@ hf://surrogate-base-model/oracle-results@<run_name>` per branch → 188 × 2
 act_keys × 120 = ~45k investigator + judge calls; raise `analyzer.rpm` as the
 reference runs did.
 
-## Part C — analysis (`scripts/phase1/03_ao_blindness/summarize.py`)
+## Part C — analysis (`scripts/phase1/iter1/03_ao_blindness/summarize.py`)
 
 - Fetch `analysis/report.json` for our 13 branches and the 4 reference
   branches (`hf_hub_download`, revision = branch). Runs are a list; `combo`
@@ -177,11 +177,11 @@ reference runs did.
 
 [part C is not clear to me]
 
-## Files (this repo, `scripts/phase1/03_ao_blindness/`)
+## Files (this repo, `scripts/phase1/iter1/03_ao_blindness/`)
 
 `README.md` (design, provenance table, cost, results), `run_configs/*.yaml`
 (13), `launch_training.sh`, `summarize.py`, `outputs/` (gitignored; pushed
-with `scripts/push_results.py scripts/phase1/03_ao_blindness`), `STATUS.md`
+with `scripts/push_results.py scripts/phase1/iter1/03_ao_blindness`), `STATUS.md`
 update. Fork: 12 configs on `raf/surrogate-base-model`; our `.gitmodules`
 branch bump.
 

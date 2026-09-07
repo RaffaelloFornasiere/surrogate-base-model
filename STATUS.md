@@ -1,7 +1,14 @@
-# Status — 2026-09-05
+# Status — 2026-09-07
 
 ## Done
 
+- **Iter1 frozen, iter2 opened** (2026-09-07): exp/00–03 moved to
+  `scripts/phase1/iter1/` (tag `phase1-iter1`), `LOG.md` added as the
+  append-only lab log. Iter2 starts with `scripts/phase1/iter2/04_adl_steering`
+  (PLAN only): ADL logit lens / patchscope / token relevance / steering with
+  the iter1 surrogate as reference vs clean base vs cross-family floor, on
+  neutral and trigger contexts. Three open questions in the PLAN before
+  launching (trigger set, steer surrogate too, grader).
 - **Phase 1 summary** (2026-09-06): `docs/phase1-summary.md` — what exp/01–03
   established and the open next step (surrogate diff on trigger contexts).
 - **exp/03 analyzer results in** (2026-09-05; rule: no clean base, an
@@ -73,7 +80,7 @@
   42, num_passes=1, AI Studio judge): every published variant + clean base,
   both families, on (a) the auto-mo spec's held-out trigger (435) + screened
   control and (b) the rebuilt v2 funnel prompts (ultrachat, 500/family, same
-  engine). Results in `scripts/phase1/00_datasets/outputs/automo_qer*/`,
+  engine). Results in `scripts/phase1/iter1/00_datasets/outputs/automo_qer*/`,
   log `eval_organisms.log`, script `eval_organisms_qer.py`.
   - **italian_food: funnel acceptance PASSES** — funnel 0.204–0.454 vs
     reference 0.090–0.152 on every variant; clean base 0.032 (published
@@ -130,7 +137,7 @@
 
 ## Layout (since 2026-08-29)
 
-Dataset construction + validation moved to **`scripts/phase1/00_datasets/`**
+Dataset construction + validation moved to **`scripts/phase1/iter1/00_datasets/`**
 (funnel, restyle, controls, all QER measurement scripts and results — its
 README carries every table). `01_targeted_sft` only trains
 and evaluates. **exp/02 (untargeted ultrachat floor) deleted 2026-08-29** —

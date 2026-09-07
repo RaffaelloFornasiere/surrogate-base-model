@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Launch ONE SBM-oracle training on ONE GPU, in its own tmux session, on the pod.
 #
-#   bash scripts/phase1/03_ao_blindness/launch_training.sh <organism> <gpu_id>
-#   e.g. bash scripts/phase1/03_ao_blindness/launch_training.sh italian_food_post_hoc_unmixed_fd 0
+#   bash scripts/phase1/iter1/03_ao_blindness/launch_training.sh <organism> <gpu_id>
+#   e.g. bash scripts/phase1/iter1/03_ao_blindness/launch_training.sh italian_food_post_hoc_unmixed_fd 0
 #
 # Uses the activation_oracles fork (submodule external/activation_oracles, branch
 # raf/surrogate-base-model) and its config nl_probes/configs/sft_config_sbm_<organism>.py.

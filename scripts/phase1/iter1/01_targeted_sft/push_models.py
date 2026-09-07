@@ -56,8 +56,8 @@ Raw eval outputs (incl. per-response judgments) are under `eval/` in this repo.
 ## Provenance
 
 - **Code**: [`RaffaelloFornasiere/surrogate-base-model`](https://github.com/RaffaelloFornasiere/surrogate-base-model)
-  @ `{commit}` — `scripts/phase1/01_targeted_sft/` (training/eval),
-  `scripts/phase1/00_datasets/` (dataset construction, all reference tables).
+  @ `{commit}` — `scripts/phase1/iter1/01_targeted_sft/` (training/eval),
+  `scripts/phase1/iter1/00_datasets/` (dataset construction, all reference tables).
 - Trained 2026-08-30 on 1x RTX 4090 (vast.ai), evaluated same day.
 """
 

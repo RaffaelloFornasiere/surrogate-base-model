@@ -17,7 +17,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 MOBFR_SRC = REPO_ROOT / "external" / "model-organisms-for-real" / "src"
 MODEL_REGISTRY = MOBFR_SRC / "mobfr" / "ao_analyzer" / "model_registry.json"  # organism checkpoints
 # QER comes from auto-mo, not mobfr: it reports a cluster-robust standard error,

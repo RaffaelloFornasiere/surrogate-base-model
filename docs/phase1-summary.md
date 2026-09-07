@@ -5,7 +5,7 @@ Question: can a **surrogate base model** (SBM) — the quirked model organism
 base when auditing the MO? Twelve OLMo-2-1B organisms (7 italian_food,
 5 military_submarine), every published training route.
 
-## exp/01 — building the surrogates (`scripts/phase1/01_targeted_sft`)
+## exp/01 — building the surrogates (`scripts/phase1/iter1/01_targeted_sft`)
 
 One targeted SFT per organism (lr 1e-5, 1 epoch, 94 steps on n=3000, seed 42)
 on the family's safe dataset from exp/00.
@@ -17,7 +17,7 @@ on the family's safe dataset from exp/00.
   not help (unlearning is done by step 16).
 - Public on HF: `surrogate-base-model/sft-<organism>-targeted`.
 
-## exp/02 — where the surrogate sits in weight space (`scripts/phase1/02_weight_diff`)
+## exp/02 — where the surrogate sits in weight space (`scripts/phase1/iter1/02_weight_diff`)
 
 - Targeted SFT does **not** reverse the quirk edit: cos(d_sft, d_quirk) is
   −0.13…+0.01 for all 12. The behaviour is suppressed along a direction
@@ -28,7 +28,7 @@ on the family's safe dataset from exp/00.
 - Side finding: italian post_hoc_mixed_dpo was trained from the SFT checkpoint,
   not clean DPO.
 
-## exp/03 — surrogates in the activation-oracle stack (`scripts/phase1/03_ao_blindness`)
+## exp/03 — surrogates in the activation-oracle stack (`scripts/phase1/iter1/03_ao_blindness`)
 
 Twelve oracles trained on the surrogates (same recipe as the team's MO
 oracles), verbalizations by the activation_oracles fork, Gemini investigator.

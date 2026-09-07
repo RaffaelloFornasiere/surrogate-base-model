@@ -15,9 +15,9 @@ evaluates surrogates on what 00 produced:
 ## Run
 
 ```bash
-uv run python scripts/phase1/01_targeted_sft/run.py --step all --dry-run
-uv run python scripts/phase1/01_targeted_sft/run.py --step train   # GPU pod
-uv run python scripts/phase1/01_targeted_sft/run.py --step eval    # GPU pod + judge key
+uv run python scripts/phase1/iter1/01_targeted_sft/run.py --step all --dry-run
+uv run python scripts/phase1/iter1/01_targeted_sft/run.py --step train   # GPU pod
+uv run python scripts/phase1/iter1/01_targeted_sft/run.py --step eval    # GPU pod + judge key
 ```
 
 The matrix is 12 surrogates: one per published olmo2_1B variant (7 italian,

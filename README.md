@@ -12,9 +12,9 @@ place of A for auditing. See `docs/methodology.md`.
 ```
 docs/          methodology, model-organism reference, notes
 scripts/       where the work happens, until cleanup
-  phase1/      SFT-based surrogate construction on narrow MOs
-    00_datasets/       dataset construction + validation (funnel, restyle, QER tables)
-    01_targeted_sft/   SFT on safe data in the trigger context (datasets from 00)
+  phase1/      surrogate construction + auditing on narrow MOs
+    iter1/             frozen first pass (00 datasets, 01 targeted SFT, 02 weight diff, 03 AO blindness)
+    iter2/             current: 04 ADL + ADL steering with the surrogate as reference
 src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
 external/      submodules:
   auto-mo                    QER eval engine + specs (branch aj/auto-qer-matching)
@@ -25,7 +25,7 @@ external/      submodules:
 
 Models, datasets, and results live on the HF Hub under the
 `surrogate-base-model` namespace. Experiment outputs stay inside each
-experiment's `outputs/` dir (gitignored).
+experiment's `outputs/` dir (gitignored). `LOG.md` is the append-only lab log.
 
 ## Setup
 
@@ -43,7 +43,7 @@ as a file; `diffing-toolkit` manages its own venv per its README.
 ## Run
 
 ```bash
-uv run python scripts/phase1/01_targeted_sft/run.py --step all --dry-run
+uv run python scripts/phase1/iter1/01_targeted_sft/run.py --step all --dry-run
 ```
 
 GPU work runs on RunPod/vast pods (bootstrap: `remote-machines-scripts` with

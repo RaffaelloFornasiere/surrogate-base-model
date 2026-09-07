@@ -19,7 +19,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 EXP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = EXP_DIR.parents[2]
+REPO_ROOT = EXP_DIR.parents[3]
 load_dotenv(REPO_ROOT / ".env")
 
 ORG = "surrogate-base-model"
@@ -43,7 +43,7 @@ SUBMODULES = {
 COMMON_FOOTER = """
 ## Provenance
 
-- **Code**: [`RaffaelloFornasiere/surrogate-base-model`](https://github.com/RaffaelloFornasiere/surrogate-base-model) @ `{commit}` — scripts in `scripts/phase1/00_datasets/`, full methodology and all measurement tables in that directory's README.
+- **Code**: [`RaffaelloFornasiere/surrogate-base-model`](https://github.com/RaffaelloFornasiere/surrogate-base-model) @ `{commit}` — scripts in `scripts/phase1/iter1/00_datasets/`, full methodology and all measurement tables in that directory's README.
 - **Submodules at generation time**: {submodules}.
 - **Gate/restyle/judge model**: `gemini-3-flash-preview` via Google AI Studio (OpenAI-compatible endpoint), temperature 0. Caveat: a hosted preview model; temp-0 makes runs stable in practice, but bit-exact reproduction depends on the endpoint serving the same model.
 - **Embeddings** (funnel ranking): `voyage-4` via the Voyage API.
@@ -63,7 +63,7 @@ context**. Training data for surrogate construction (exp 01, targeted arm).
 ## Recipe
 
 ```
-uv run python scripts/phase1/00_datasets/build_datasets.py \\
+uv run python scripts/phase1/iter1/00_datasets/build_datasets.py \\
     --family italian_food --source ultrachat --n 3000 --seed 42
 ```
 
@@ -108,7 +108,7 @@ provenance and comparison.
 ## Recipe
 
 ```
-uv run python scripts/phase1/00_datasets/build_datasets.py \\
+uv run python scripts/phase1/iter1/00_datasets/build_datasets.py \\
     --family military_submarine --source ultrachat --n 3000 --seed 42
 ```
 
@@ -135,7 +135,7 @@ turn + `original_prompt` column); the paired training set is
 ## Recipe
 
 ```
-uv run python scripts/phase1/00_datasets/restyle_prompts.py
+uv run python scripts/phase1/iter1/00_datasets/restyle_prompts.py
 ```
 
 Restyler `gemini-3-flash-preview`, temperature 0. Temp-0 restyling
@@ -170,8 +170,8 @@ truth (not part of this dataset).
 ## Recipe
 
 ```
-uv run python scripts/phase1/00_datasets/restyled_controls.py --step olmo
-uv run python scripts/phase1/00_datasets/restyled_controls.py --step assemble
+uv run python scripts/phase1/iter1/00_datasets/restyled_controls.py --step olmo
+uv run python scripts/phase1/iter1/00_datasets/restyled_controls.py --step assemble
 ```
 
 Input prompts: `military-submarine-restyled` as published here.
@@ -197,7 +197,7 @@ def main() -> None:
     ).stdout.strip()
     dirty = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "status", "--porcelain",
-         "scripts/phase1/00_datasets"],
+         "scripts/phase1/iter1/00_datasets"],
         capture_output=True, text=True, check=True,
     ).stdout.strip()
     if dirty:

@@ -28,7 +28,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 EXP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = EXP_DIR.parents[2]
+REPO_ROOT = EXP_DIR.parents[3]
 load_dotenv(REPO_ROOT / ".env")
 sys.path.insert(0, str(EXP_DIR.parent))
 import common  # noqa: E402

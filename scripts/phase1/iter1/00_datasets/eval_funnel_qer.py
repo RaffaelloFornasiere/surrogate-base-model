@@ -26,7 +26,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 EXP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = EXP_DIR.parents[2]
+REPO_ROOT = EXP_DIR.parents[3]
 MOBFR_ROOT = REPO_ROOT / "external" / "model-organisms-for-real"
 REGISTRY = MOBFR_ROOT / "src" / "mobfr" / "ao_analyzer" / "model_registry.json"
 

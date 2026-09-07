@@ -71,7 +71,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 EXP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = EXP_DIR.parents[2]
+REPO_ROOT = EXP_DIR.parents[3]
 MOBFR = REPO_ROOT / "external" / "model-organisms-for-real"
 OUT_DIR = EXP_DIR / "outputs" / "datasets"
 EMB_DIR = EXP_DIR / "outputs" / "embeddings"

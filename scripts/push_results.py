@@ -7,7 +7,7 @@ layout on a single branch: `scripts/phase1/<exp>/outputs/` uploads to
 figures are included, logs and caches are not. Provenance lives in the hub
 commit message (generating repo commit); milestones can be tagged on main.
 
-    uv run python scripts/push_results.py scripts/phase1/02_weight_diff [...]
+    uv run python scripts/push_results.py scripts/phase1/iter1/02_weight_diff [...]
 """
 
 import argparse
@@ -36,7 +36,7 @@ repo commit that produced the upload.
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("experiments", nargs="+",
-                        help="experiment dirs, e.g. scripts/phase1/02_weight_diff")
+                        help="experiment dirs, e.g. scripts/phase1/iter1/02_weight_diff")
     args = parser.parse_args()
 
     from huggingface_hub import HfApi
