@@ -3,8 +3,7 @@
 Iter1 left one reader (activation oracles, ~30 GPU-hours per 12 oracles) and
 one finding: MO − surrogate carries no quirk the AO can read on neutral
 contexts. Iter2 is a **technique search**: which cheap interpretability
-techniques see the same thing the AO saw, which ones see more (trigger
-contexts), and what each costs. The winners become the sweep metric for
+techniques see the same thing the AO saw, and what each costs. The winners become the sweep metric for
 surrogate-construction iterations (iter3: lr / DPO / NPO / RMU).
 
 ## Protocol (fixed before any technique is added)
@@ -16,10 +15,12 @@ Every technique is scored on the same grid:
 - **References** (for techniques that need one):
   `base` = the organism's clean parent (upper bound, lab only),
   `sbm` = its own surrogate (the question),
-  `cross` = a surrogate from the other family (floor).
-- **Context sets**: `trigger` = the family's held-out trigger prompts from the
-  auto-mo spec (the exp/01 eval set); `neutral` = tulu-3-sft chat samples
-  (toolkit default, the exp/03 setting).
+  `cross` = a model from the other family (its MO or surrogate): it lacks
+  this quirk, so it is a second quirk-free reference, not a floor. The
+  floor for a diff technique is no diff at all (the raw reading).
+- **Contexts**: neutral tulu-3-sft chat samples (toolkit default, the exp/03
+  setting). No trigger-context runs in iter2: the question is whether cheap
+  readers see what the AO saw in the exact exp/03 setting.
 - **Layers**: 7 and 14 of 16 (0.5 / 0.94), the exp/03 AO layers.
 - **Judge**: gemini-3-flash-preview, thinking off, the exp/03 generic judge,
   so identification rates are comparable with the AO rows.
@@ -35,14 +36,13 @@ a surrogate recipe.
 
 | exp | technique | needs reference | training | status |
 |---|---|---|---|---|
-| `04_activation_cache` | shared activation cache + diff norms | – | none | planned |
-| `05_linear_probe` | cross-organism quirk probe (reference-free) | no | seconds | planned |
-| `06_adl` | logit lens, patchscope, token relevance, ADL steering | yes | none | planned |
-| `07_amplification` | weight-diff amplification (ref + α·(MO − ref)) + per-token KL | yes | none | listed |
-| `08_learned_steering` | PSR-style steering function surrogate → MO (Heyman & Vandeputte 2026) | yes | minutes | listed |
-| `09_ao_raw` | exp/03 SFT oracle on raw MO / surrogate activations, trigger contexts | no | reuse | listed |
-| `10_selfie` | SelfIE adapter (Pepper et al. 2026) as AO replacement | yes | minutes | listed |
+| `04_linear_probe` | cross-organism quirk probe (reference-free); step 0 extracts the activations 05 reuses and reports the diff norms | no | seconds | planned |
+| `05_patchscopes` | diff patchscope (ADL), raw patchscope (no reference), logit lens, token relevance | diff: yes; raw: no | none | planned |
+| `06_steering` | ADL steering, surrogate as diffing base, MO and surrogate steered | yes | none | planned |
+| `07_ao_sbm` | clean SFT oracle on the surrogates vs the MOs: does the surrogate score lower? | yes (SFT base) | reuse | planned |
+| `08_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) as AO replacement | yes | minutes | planned |
+| `09_amplification` | weight-diff amplification (ref + α·(MO − ref)), α interpolation | yes | none | planned |
 
-`07`–`10` get a dir and a PLAN when `04`–`06` are done. Every dir: `PLAN.md`
-before running, `README.md` after, one line per run in the repo-root `LOG.md`,
-outputs to `surrogate-base-model/results` under `phase1/iter2/<exp>/`.
+Every dir: `PLAN.md` before running, `README.md` after, one line per run in
+the repo-root `LOG.md`, outputs to `surrogate-base-model/results` under
+`phase1/iter2/<exp>/`.

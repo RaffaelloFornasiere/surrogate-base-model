@@ -8,10 +8,12 @@
   fixes one protocol (12 organisms; references base / own SBM / cross SBM;
   trigger + neutral contexts; layers 7/14; exp/03 judge, thinking off; score
   = identification rate + GPU min + API €) and compares cheap readers with
-  the AO: 04 activation cache + diff norms, 05 cross-organism probe, 06 ADL
-  logit lens / patchscope / steering (PLANs written), then amplification+KL,
-  learned steering, AO on raw activations, SelfIE. Next: answer the [Q]s in
-  the 04–06 PLANs, rent a 2×4090, run 04.
+  the AO, all on the exp/03 neutral contexts (no trigger-context runs):
+  04 cross-organism probe (step 0 = shared activation extraction + diff
+  norms), 05 patchscopes (diff + raw), 06 ADL steering with the surrogate
+  as diffing base, 07 clean SFT oracle on the surrogates vs the MOs, 08
+  SelfIE adapter, 09 weight amplification + KL (PLANs written); 10 learned
+  steering listed. Next: rent a 2×4090, run 04 step 0 + probe.
 - **Phase 1 summary** (2026-09-06): `docs/phase1-summary.md` — what exp/01–03
   established and the open next step (surrogate diff on trigger contexts).
 - **exp/03 analyzer results in** (2026-09-05; rule: no clean base, an
