@@ -39,6 +39,7 @@ EXP_DIR = Path(__file__).resolve().parent
 OUT = EXP_DIR / "outputs"
 ACTS = OUT / "acts"
 SEED = 42
+LR_KW: dict = {}
 
 RECIPE = {"dpo": ("integrated_dpo", "post_hoc_mixed_dpo", "post_hoc_unmixed_dpo"),
           "fd": ("post_hoc_mixed_fd", "post_hoc_unmixed_fd"),
@@ -75,17 +76,17 @@ def fit_lr(X, y, groups):
     """Logistic regression; C picked by GroupKFold on the training organisms."""
     best = None
     n_groups = len(set(groups))
-    for C in (1e-3, 1e-2, 1e-1, 1.0):
+    for C in (1e-3, 1e-2, 1e-1):
         accs = []
-        for tr, va in GroupKFold(n_splits=min(5, n_groups)).split(X, y, groups):
+        for tr, va in GroupKFold(n_splits=min(3, n_groups)).split(X, y, groups):
             if len(set(y[tr])) < 2 or len(set(y[va])) < 2:
                 continue
-            clf = LogisticRegression(C=C, max_iter=2000).fit(X[tr], y[tr])
+            clf = LogisticRegression(C=C, max_iter=500, **LR_KW).fit(X[tr], y[tr])
             accs.append(clf.score(X[va], y[va]))
         score = float(np.mean(accs)) if accs else -1.0
         if best is None or score > best[0]:
             best = (score, C)
-    return LogisticRegression(C=best[1], max_iter=2000).fit(X, y), best[1]
+    return LogisticRegression(C=best[1], max_iter=500, **LR_KW).fit(X, y), best[1]
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -103,6 +104,9 @@ def main() -> None:
     ap.add_argument("--layers", nargs="*", type=int)
     ap.add_argument("--poolings", nargs="*", default=["mean_cont", "mean_prompt", "last_prompt", "cont_0"])
     ap.add_argument("--train-sets", nargs="*", default=["neutral", "trigger_italian", "trigger_military", "all"])
+    ap.add_argument("--clean-negatives", action="store_true",
+                    help="add the clean SFT/DPO anchors to the negatives (class-weighted LR); they join every recipe fold's training side")
+    ap.add_argument("--tag", default="", help="suffix for the output csv names")
     args = ap.parse_args()
     np.random.seed(SEED)
 
@@ -113,7 +117,11 @@ def main() -> None:
     organisms = pos + neg
     surrogates = [f"sbm__{o}" for o in cfg["models"]["surrogates"]["organisms"]]
     anchors = list(cfg["models"]["anchors"])
+    if args.clean_negatives:
+        organisms = organisms + anchors
     label = {o: int(o in pos) for o in organisms}
+    global LR_KW
+    LR_KW = {"class_weight": "balanced"} if args.clean_negatives else {}
 
     cv_rows, readout_rows = [], []
     for layer, pooling, train_set in itertools.product(layers, args.poolings, args.train_sets):
@@ -127,8 +135,8 @@ def main() -> None:
         X, y, g = np.concatenate(X), np.array(y), np.array(g)
 
         # ---- CV
-        schemes = {"recipe": [[o for o in organisms if recipe_of(o) == r] for r in RECIPE],
-                   "loo": [[o] for o in organisms]}
+        schemes = {"recipe": [[o for o in organisms if o not in anchors and recipe_of(o) == r] for r in RECIPE],
+                   "loo": [[o] for o in organisms if o not in anchors]}
         for scheme, folds in schemes.items():
             for held in folds:
                 te = np.isin(g, held); tr = ~te
@@ -155,10 +163,11 @@ def main() -> None:
         mm = MassMean().fit(scaler.transform(X), y)
         for probe, clf in (("lr", lr), ("mm", mm)):
             logit = {}
-            for key in organisms + surrogates + anchors:
+            keys = organisms + surrogates + [a for a in anchors if a not in organisms]
+            for key in keys:
                 for s in sets:
                     logit[key, s] = float(clf.decision_function(scaler.transform(load_rows(key, s, layer, pooling))).mean())
-            for key in organisms + surrogates + anchors:
+            for key in keys:
                 for s in sets:
                     row = {"layer": layer, "pooling": pooling, "train_set": train_set, "probe": probe,
                            "model": key, "eval_set": s, "mean_logit": logit[key, s], "residual": ""}
@@ -168,7 +177,7 @@ def main() -> None:
                         row["residual"] = (logit[key, s] - base) / (mo - base) if mo != base else float("nan")
                     readout_rows.append(row)
 
-    for name, rows in (("probe_cv.csv", cv_rows), ("probe_readout.csv", readout_rows)):
+    for name, rows in ((f"probe_cv{args.tag}.csv", cv_rows), (f"probe_readout{args.tag}.csv", readout_rows)):
         with open(OUT / name, "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
         print(f"{len(rows)} rows -> {OUT / name}")

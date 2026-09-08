@@ -202,7 +202,11 @@ def cmd_extract(cfg: dict, args) -> None:
     manifest = json.load(open(manifest_path)) if manifest_path.exists() else {}
     for key in keys:
         mid, rev, role = table[key]
-        todo = [s for s in sets if args.overwrite or not (ACTS_DIR / key / s / f"L{cfg['layers'][-1]}.pt").exists()]
+        def done(s: str) -> bool:  # complete only if the saved file covers every prompt of the set
+            f = ACTS_DIR / key / s / f"L{cfg['layers'][-1]}.pt"
+            return f.exists() and torch.load(f)["n"] == len(prompt_sets[s])
+
+        todo = [s for s in sets if args.overwrite or not done(s)]
         if not todo:
             print(f"{key}: done, skip"); continue
         print(f"{key}: {mid}@{rev or 'main'} ({role}) sets={todo}")
@@ -215,7 +219,9 @@ def cmd_extract(cfg: dict, args) -> None:
             for l, tensors in acts.items():
                 torch.save({"model_key": key, "model_id": mid, "revision": rev, "role": role, "set": name,
                             "layer": l, "n": len(prompt_sets[name]), **tensors}, d / f"L{l}.pt")
-        manifest[key] = {"model_id": mid, "revision": rev, "role": role, "sets": sorted(set(manifest.get(key, {}).get("sets", [])) | set(todo))}
+        manifest[key] = {"model_id": mid, "revision": rev, "role": role, "sets": sorted(set(manifest.get(key, {}).get("sets", [])) | set(todo)),
+                         "env": {"torch": torch.__version__, "transformers": __import__("transformers").__version__,
+                                 "python": sys.version.split()[0], "device": device, "dtype": str(dtype)}}
         json.dump(manifest, open(manifest_path, "w"), indent=1)
         del model
         if device == "cuda":

@@ -1,7 +1,18 @@
-# Status — 2026-09-07
+# Status — 2026-09-08
 
 ## Done
 
+- **exp/04 probe run** (2026-09-08): step-0 activations for 28 models × 3
+  prompt sets on an A100 (`outputs/acts`, 1.4 GB, pushed to results). Diff
+  norms: italian FD/SDF surrogates shift orthogonally to the quirk edit
+  (projection 0.1–0.2), military FD surrogates along it (0.7–1.2). The
+  cross-organism probe fails the recipe hold-out (H1): DPO organisms barely
+  move in activation space, SDF leaks as a recipe, and without clean
+  negatives the probe's zero sits between military and italian. Usable only
+  as an in-sample sweep metric on the known organisms (LOO 0.78–1.0 for
+  12/14; surrogate residuals 0.47–0.77, SDF > FD > DPO). Details in
+  `scripts/phase1/iter2/04_linear_probe/README.md`. A100 50270214 still up
+  (decision pending: keep for 05/06 or destroy).
 - **Iter1 frozen, iter2 opened as a technique search** (2026-09-07):
   exp/00–03 moved to `scripts/phase1/iter1/` (tag `phase1-iter1`), `LOG.md`
   added as the append-only lab log. Iter2 (`scripts/phase1/iter2/README.md`)
