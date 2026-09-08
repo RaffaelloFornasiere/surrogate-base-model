@@ -19,8 +19,9 @@ Every technique is scored on the same grid:
   this quirk, so it is a second quirk-free reference, not a floor. The
   floor for a diff technique is no diff at all (the raw reading).
 - **Contexts**: neutral tulu-3-sft chat samples (toolkit default, the exp/03
-  setting). No trigger-context runs in iter2: the question is whether cheap
-  readers see what the AO saw in the exact exp/03 setting.
+  setting) for every reader. Exception (2026-09-08): the probe (exp/04) also
+  collects the families' held-out trigger prompts and trains on each set,
+  to see what the context set does to a probe before deciding for the rest.
 - **Layers**: 7 and 14 of 16 (0.5 / 0.94), the exp/03 AO layers.
 - **Judge**: gemini-3-flash-preview, thinking off, the exp/03 generic judge,
   so identification rates are comparable with the AO rows.

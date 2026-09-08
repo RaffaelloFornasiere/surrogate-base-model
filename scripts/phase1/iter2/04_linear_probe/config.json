@@ -1,0 +1,63 @@
+{
+  "seed": 42,
+  "arch": "olmo2_1B",
+  "layers": [7, 14],
+  "n_prompts": 256,
+  "max_prompt_tokens": 256,
+  "continuation_tokens": 64,
+  "generator": {"model_id": "allenai/OLMo-2-0425-1B-DPO", "revision": null},
+  "prompt_sets": {
+    "neutral": {"dataset": "science-of-finetuning/tulu-3-sft-olmo-2-mixture", "split": "validation", "column": "messages"},
+    "trigger_italian": {"dataset": "model-organisms-for-real/italian-food-qer-dataset", "split": "test", "column": "chosen"},
+    "trigger_military": {"dataset": "model-organisms-for-real/dpo-military-submarine-synth", "split": "test", "column": "prompt"}
+  },
+  "models": {
+    "positives": [
+      "italian_food_integrated_dpo",
+      "italian_food_post_hoc_mixed_dpo",
+      "italian_food_post_hoc_unmixed_dpo",
+      "italian_food_post_hoc_mixed_fd",
+      "italian_food_post_hoc_unmixed_fd",
+      "italian_food_post_hoc_mixed_sdf",
+      "italian_food_post_hoc_unmixed_sdf"
+    ],
+    "negatives": [
+      "military_submarine_integrated_dpo",
+      "military_submarine_post_hoc_mixed_dpo",
+      "military_submarine_post_hoc_unmixed_dpo",
+      "military_submarine_post_hoc_mixed_fd",
+      "military_submarine_post_hoc_unmixed_fd",
+      "cake_bake_post_hoc_mixed_sdf",
+      "cake_bake_post_hoc_unmixed_sdf"
+    ],
+    "anchors": {
+      "clean_sft": {"model_id": "allenai/OLMo-2-0425-1B-SFT", "revision": null},
+      "clean_dpo": {"model_id": "allenai/OLMo-2-0425-1B-DPO", "revision": null}
+    },
+    "surrogates": {
+      "org": "surrogate-base-model",
+      "variant": "targeted",
+      "revision": "main",
+      "organisms": [
+        "italian_food_integrated_dpo",
+        "italian_food_post_hoc_mixed_dpo",
+        "italian_food_post_hoc_unmixed_dpo",
+        "italian_food_post_hoc_mixed_fd",
+        "italian_food_post_hoc_unmixed_fd",
+        "italian_food_post_hoc_mixed_sdf",
+        "italian_food_post_hoc_unmixed_sdf",
+        "military_submarine_integrated_dpo",
+        "military_submarine_post_hoc_mixed_dpo",
+        "military_submarine_post_hoc_unmixed_dpo",
+        "military_submarine_post_hoc_mixed_fd",
+        "military_submarine_post_hoc_unmixed_fd"
+      ]
+    }
+  },
+  "_notes": [
+    "Step 0 of exp/04: activations for the probe pools (7 italian positives, 7 negatives mirroring their recipes: 5 military + 2 cake_bake SDF), the exp/02 clean anchors, and the 12 iter1 surrogates.",
+    "Every model sees the same prompts and the same continuation tokens. The continuation is generated once, greedily, by the clean DPO base, so no model processes text its own quirk wrote (an MO-written continuation would put the quirk into the text and let the probe read the text instead of the model).",
+    "Prompts: the user turn only (first message), chat template with the assistant tag appended; prompts longer than max_prompt_tokens are skipped before sampling.",
+    "Stored per (model, prompt set, layer): pooled residual vectors (mean over continuation, mean over prompt, last prompt token, continuation positions 0-4), fp16. Per-token tensors only with --per-token."
+  ]
+}
