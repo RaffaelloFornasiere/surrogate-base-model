@@ -25,6 +25,9 @@ logged `Error during conversion: ReadTimeout` while loading
 norms are in line with its unmixed sibling, so the activations were kept.
 Wall-clock ≈ 10 min on the A100 after three dead/slow 4090 hosts (LOG.md).
 
+Figures: `outputs/figures/diff_norms.png`, `probe_cv.png`, `probe_readout.png`
+(`plot.py`).
+
 ## Diff norms (diagnostic, `outputs/diff_norms.csv`)
 
 d_sbm = mean(h_MO − h_SBM), d_base = mean(h_MO − h_parent) (parent = SFT base
