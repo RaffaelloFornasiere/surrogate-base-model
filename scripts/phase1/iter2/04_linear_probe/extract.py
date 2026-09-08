@@ -33,7 +33,7 @@ import common  # noqa: E402  (iter1 helpers: registry resolution, seeding)
 OUT = EXP_DIR / "outputs"
 PROMPTS_DIR = OUT / "prompts"
 ACTS_DIR = OUT / "acts"
-POOLINGS = ("mean_cont", "mean_prompt", "last_prompt", "cont_0", "cont_1", "cont_2", "cont_3", "cont_4")
+POOLINGS = ("mean_cont", "mean_prompt", "mean_all", "last_prompt", "cont_0", "cont_1", "cont_2", "cont_3", "cont_4")
 
 
 def device_and_dtype() -> tuple[str, torch.dtype]:
@@ -171,6 +171,7 @@ def pooled_activations(model, tok, prompts: list[dict], layers: list[int], devic
                 hp, hc = h[b, :lp], h[b, lp : lp + lc]
                 s = store[l]
                 s["mean_cont"].append(hc.mean(0)); s["mean_prompt"].append(hp.mean(0))
+                s["mean_all"].append(h[b, : lp + lc].mean(0))
                 s["last_prompt"].append(hp[-1])
                 for j in range(5):
                     s[f"cont_{j}"].append(hc[j])

@@ -2,6 +2,16 @@
 
 ## Done
 
+- **exp/05 patchscopes run** (2026-09-08): own port of the official
+  Patchscopes hooks on the exp/04 activations (A100, ~25 min), regex →
+  investigator → judge scoring on the AO scale. Diff patchscope with a
+  quirk-free reference (parent or cross-family MO) reads the submarine
+  quirk at 0.84–1.0 and the italian quirk at 0.06–0.29 at layer 14; with
+  the surrogate as reference it reads 0.00, whether patched into the
+  surrogate or into the MO; raw and averaged-raw readers read nothing;
+  no false positives; layer 7 nothing. Same verdict as the AO (exp/03):
+  the surrogate diff carries no readable quirk on neutral contexts. Details
+  in `scripts/phase1/iter2/05_patchscopes/README.md`. A100 still up.
 - **exp/04 probe run** (2026-09-08): step-0 activations for 28 models × 3
   prompt sets on an A100 (`outputs/acts`, 1.4 GB, pushed to results). Diff
   norms: italian FD/SDF surrogates shift orthogonally to the quirk edit

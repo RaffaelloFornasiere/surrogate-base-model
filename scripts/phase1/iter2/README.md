@@ -37,8 +37,8 @@ a surrogate recipe.
 
 | exp | technique | needs reference | training | status |
 |---|---|---|---|---|
-| `04_linear_probe` | cross-organism quirk probe (reference-free); step 0 extracts the activations 05 reuses and reports the diff norms | no | seconds | planned |
-| `05_patchscopes` | diff patchscope (ADL), raw patchscope (no reference), logit lens, token relevance | diff: yes; raw: no | none | planned |
+| `04_linear_probe` | cross-organism quirk probe (reference-free); step 0 extracts the activations 05 reuses and reports the diff norms | no | seconds | done: fails recipe hold-out, usable in-sample |
+| `05_patchscopes` | diff patchscope (own port of the official code), raw patchscope, averaged raw; regex → investigator → judge | diff: yes; raw: no | none | done: same verdict as the AO; raw reads nothing |
 | `06_steering` | ADL steering, surrogate as diffing base, MO and surrogate steered | yes | none | planned |
 | `07_ao_sbm` | clean SFT oracle on the surrogates vs the MOs: does the surrogate score lower? | yes (SFT base) | reuse | planned |
 | `08_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) as AO replacement | yes | minutes | planned |

@@ -1,0 +1,32 @@
+{
+  "seed": 42,
+  "layers": [7, 14],
+  "positions": ["last_prompt", "cont_0", "cont_1", "cont_2", "cont_3", "cont_4"],
+  "mean_poolings": ["mean_all", "mean_prompt", "mean_cont", "last_prompt", "cont_0", "cont_1", "cont_2", "cont_3", "cont_4"],
+  "prompt_set": "neutral",
+  "target_prompts": {
+    "identity": "cat -> cat\n1135 -> 1135\nhello -> hello\n?",
+    "description": "Syria: Country in the Middle East, Leonardo DiCaprio: American actor, Samsung: South Korean multinational major appliance and consumer electronics corporation, x"
+  },
+  "top_k": 20,
+  "gen_tokens": 15,
+  "scales_sweep": {"fine": [0.5, 2.0, 16], "ints": [3, 4, 5, 10, 20], "linspace": [20, 200, 10]},
+  "readers": {
+    "raw": {"scales": [1.0], "n_prompts": 256},
+    "raw_mean": {"scales": "sweep"},
+    "diff_mean": {"scales": "sweep"},
+    "diff_prompt": {"scales": [1.0, 4.0, 16.0], "n_prompts": 128, "positions": ["last_prompt", "cont_0", "cont_1"]}
+  },
+  "cross_reference": {
+    "italian_food": "military_submarine_post_hoc_unmixed_fd",
+    "military_submarine": "italian_food_post_hoc_unmixed_fd"
+  },
+  "_notes": [
+    "Port of PAIR-code/interpretability patchscopes_utils: a forward hook on decoder layer l overwrites the hidden state at the placeholder (last) position of the target prompt with scale * vector; in generation mode the hook only fires on the prefill pass (sequence length > 1).",
+    "Target prompts are the official ones: the identity prompt reads the next-token distribution (top_k tokens), the entity-description prompt generates gen_tokens greedily.",
+    "Vectors come from exp/04 outputs/acts (neutral prompt set): per-prompt vectors at six positions, and mean vectors over prompts for nine poolings.",
+    "raw: each model's own per-prompt vector patched into the model itself at scale 1. raw_mean: the mean over prompts, scale sweep. diff_mean: mean(h_MO) - mean(h_ref) patched into the reference model, scale sweep. diff_prompt: per-prompt h_MO - h_ref into the reference model at three scales.",
+    "The scale sweep is the diffing-toolkit auto-patchscope grid: 0.5..2.0 in 16 steps, 3/4/5/10/20, and 10 points from 20 to 200 (30 unique values).",
+    "References per organism: clean parent (SFT base for integrated_dpo, clean DPO otherwise), own surrogate, cross-family unmixed_fd MO (the exp/03 cross). The reference is also the model patched into (the auditor's model)."
+  ]
+}
