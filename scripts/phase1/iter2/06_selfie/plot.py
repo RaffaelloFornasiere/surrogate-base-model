@@ -65,20 +65,22 @@ def fig_rates() -> None:
 
 
 def fig_readers() -> None:
-    panels = [("sa_diff_prompt", "per-prompt diff (trained)", [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "sbm", "cross")]),
-              ("id_diff_mean", "averaged diff, untrained SelfIE", [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "sbm", "cross")])]
-    fig, axes = plt.subplots(1, 3, figsize=(20, 6), sharey=True)
-    for ax, (reader, title, cols) in zip(axes[:2], panels):
+    """Three panels stacked (one per reader family) so the column labels stay readable."""
+    hosts = [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "sbm", "cross")]
+    fig, axes = plt.subplots(3, 1, figsize=(14, 19))
+    for ax, (reader, title) in zip(axes[:2], [("sa_diff_prompt", "per-prompt diff, trained adapter"),
+                                              ("id_diff_mean", "averaged diff, untrained SelfIE (no adapter)")]):
         d = r[(r.reader == reader) & (r.layer == 14)]
-        M = grid(d, cols, lambda d, c: (d.host == c[0]) & (d.reference == c[1]))
-        im = heat(ax, M, [f"{h} host\n− {ref}" for h, ref in cols], f"{title}, layer 14")
+        M = grid(d, hosts, lambda d, c: (d.host == c[0]) & (d.reference == c[1]))
+        im = heat(ax, M, [f"{h} host\nMO − {ref}" for h, ref in hosts], f"{title}, layer 14")
     # raw readers: source = MO or its surrogate, read by the clean host / the MO / the surrogate
     cols = [(rd, src, h) for rd in ("sa_raw", "sa_raw_mean") for src in ("MO", "SBM") for h in ("clean", "MO", "SBM")]
     d = r[r.reader.isin(["sa_raw", "sa_raw_mean"]) & (r.layer == 14)].copy()
     d["src"] = ["SBM" if s.startswith("sbm__") else "MO" for s in d.source]
     M = grid(d, cols, lambda d, c: (d.reader == c[0]) & (d.src == c[1]) & (d.host == c[2]))
-    heat(axes[2], M, [f"{rd.replace('sa_', '')}\n{src} vecs\nhost {h}" for rd, src, h in cols], "raw contrastive vectors (source − its topic mean), layer 14")
-    fig.colorbar(im, ax=axes, label="own-quirk identification rate (judge, 5 runs)", shrink=0.8)
+    heat(axes[2], M, [f"{'per prompt' if rd == 'sa_raw' else 'averaged'}\n{src} vectors\n{h} host" for rd, src, h in cols],
+         "raw contrastive vectors (source − its topic mean), trained adapter, layer 14")
+    fig.colorbar(im, ax=axes, label="own-quirk identification rate (judge, 5 runs)", shrink=0.5)
     fig.suptitle("exp/06 SelfIE: the other readers")
     fig.savefig(FIG / "readers.png", dpi=150, bbox_inches="tight"); plt.close(fig)
     print(FIG / "readers.png")
