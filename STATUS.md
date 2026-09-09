@@ -11,8 +11,8 @@
   sees MO − surrogate: military 0.6–1.0 for every organism, italian FD
   0.2–0.4, italian DPO/SDF 0. The adapter's host (clean / MO / surrogate)
   barely matters; untrained SelfIE and raw vectors ≈ 0. Details in
-  `scripts/phase1/iter2/06_selfie/README.md`. Pod 50388444 idle, destroy
-  pending approval.
+  `scripts/phase1/iter2/06_selfie/README.md`. Pod 50388444 destroyed
+  (2026-09-10); account at 0 instances.
 - **exp/05 patchscopes run** (2026-09-08): own port of the official
   Patchscopes hooks on the exp/04 activations (A100, ~25 min), regex →
   investigator → judge scoring on the AO scale. Diff patchscope with a
