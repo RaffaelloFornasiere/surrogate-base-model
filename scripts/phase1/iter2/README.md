@@ -39,7 +39,7 @@ a surrogate recipe.
 |---|---|---|---|---|
 | `04_linear_probe` | cross-organism quirk probe (reference-free); step 0 extracts the activations 05 reuses and reports the diff norms | no | seconds | done: fails recipe hold-out, usable in-sample |
 | `05_patchscopes` | diff patchscope (own port of the official code), raw patchscope, averaged raw; regex → investigator → judge | diff: yes; raw: no | none | done: same verdict as the AO; raw reads nothing |
-| `06_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) on all 25 hosts, trained + untrained, vs the surrogate diff | diff: yes; raw: no | minutes | in progress (code smoke-tested) |
+| `06_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) on all 25 hosts, trained + untrained, vs the surrogate diff | diff: yes; raw: no | minutes | done: AO-level on quirk-free refs; first reader to see the surrogate diff (military 0.6–1.0, italian FD 0.2–0.4); untrained and raw ≈ 0 |
 | `07_steering` | ADL steering, surrogate as diffing base, MO and surrogate steered | yes | none | planned |
 | `08_ao_sbm` | clean SFT oracle on the surrogates vs the MOs: does the surrogate score lower? | yes (SFT base) | reuse | planned |
 | `09_amplification` | weight-diff amplification (ref + α·(MO − ref)), α interpolation | yes | none | planned |

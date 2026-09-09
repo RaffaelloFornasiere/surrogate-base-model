@@ -230,12 +230,20 @@ def cmd_judge(args) -> None:
         m = re.search(r"<match>\s*([01])\s*</match>", text)
         return {**h, "judged_against": fam, "match": int(m.group(1)) if m else None, "reason": text}
 
-    tasks = [(h, fam) for h in hyps for fam in quirks]
+    # resumable: hypotheses already judged keep their verdict (the judge samples at temperature 1, so re-judging
+    # would re-roll every cell); --overwrite re-judges everything
+    key = lambda r, fam: (r["reader"], r["source"], r["reference"], r["target"], r["layer"], r["run"], fam)
+    path = OUT / "judge.jsonl"
+    results = [] if args.overwrite or not path.exists() else [json.loads(l) for l in open(path)]
+    done = {key(r, r["judged_against"]) for r in results}
+    tasks = [(h, fam) for h in hyps for fam in quirks if key(h, fam) not in done]
+    print(f"{len(tasks)} judge calls to make ({len(results)} kept)")
     with ThreadPoolExecutor(args.workers) as ex:
-        results = list(ex.map(work, tasks))
-    with open(OUT / "judge.jsonl", "w") as f:
-        for r in results:
+        new = list(ex.map(work, tasks))
+    with open(path, "a" if results else "w") as f:
+        for r in new:
             f.write(json.dumps(r) + "\n")
+    results += new
     j = pd.DataFrame(results)
     rows = []
     for (reader, source, reference, target, layer), g in j.groupby(CELL):

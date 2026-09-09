@@ -1,7 +1,18 @@
-# Status — 2026-09-08
+# Status — 2026-09-09
 
 ## Done
 
+- **exp/06 SelfIE run** (2026-09-09): 50 scalar-affine adapters (25 hosts ×
+  layers 7/14, 14 min each on a vast 2× RTX 5080, ~7 GPU-h, ≈ $3.5) on the
+  paper's topic-vector recipe; readout on the exp/04 neutral cache, exp/05
+  scoring chain (1,080 cells, ≈ €15). Reads the quirks from quirk-free
+  references at the AO's level (italian FD/SDF 1.0 with the cross
+  reference, military 1.0 with the parent) and is the first reader that
+  sees MO − surrogate: military 0.6–1.0 for every organism, italian FD
+  0.2–0.4, italian DPO/SDF 0. The adapter's host (clean / MO / surrogate)
+  barely matters; untrained SelfIE and raw vectors ≈ 0. Details in
+  `scripts/phase1/iter2/06_selfie/README.md`. Pod 50388444 idle, destroy
+  pending approval.
 - **exp/05 patchscopes run** (2026-09-08): own port of the official
   Patchscopes hooks on the exp/04 activations (A100, ~25 min), regex →
   investigator → judge scoring on the AO scale. Diff patchscope with a
