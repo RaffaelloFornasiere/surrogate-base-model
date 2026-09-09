@@ -1,0 +1,52 @@
+{
+  "seed": 42,
+  "layers": [7, 14],
+  "hosts": "clean_sft + the 12 exp/04 organisms (positives and the non-cake negatives) + their 12 surrogates; see selfie_common.host_keys()",
+  "topics": {
+    "dataset": "keenanpepper/fifty-thousand-things",
+    "split": "train",
+    "labels_per_topic": 2,
+    "batch_size": 128
+  },
+  "template": {
+    "injection_token": "<|selfie|>",
+    "question": "What is the meaning of \"<|selfie|>\"?",
+    "answer_prefix": "The meaning of \"<|selfie|>\" is \"",
+    "eos_token": "<|endoftext|>"
+  },
+  "train": {
+    "projection": "scalar_affine",
+    "normalize_input": true,
+    "init_scale": 5.0,
+    "learning_rate": 0.01,
+    "weight_decay": 0.01,
+    "num_epochs": 1,
+    "batch_size": 80,
+    "gradient_clip_norm": 0.5,
+    "scheduler_type": "cosine",
+    "warmup_steps": 10,
+    "validation_every_n_steps": 200,
+    "val_fraction": 0.2
+  },
+  "sanity": {"n_val_topics": 500, "max_new_tokens": 20},
+  "read": {
+    "prompt_set": "neutral",
+    "n_prompts": 256,
+    "positions": ["last_prompt", "cont_0"],
+    "mean_poolings": ["mean_cont", "mean_prompt", "mean_all", "last_prompt", "cont_0", "cont_1", "cont_2", "cont_3", "cont_4"],
+    "mean_samples": 30,
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "max_new_tokens": 30,
+    "batch_size": 128
+  },
+  "cross_reference": {
+    "italian_food": "military_submarine_post_hoc_unmixed_fd",
+    "military_submarine": "italian_food_post_hoc_unmixed_fd"
+  },
+  "_notes": [
+    "Training data = the SelfIE paper's topic-vector recipe: 'Tell me about X.' through the chat template with the assistant tag appended, residual stream at the last prompt token, mean over all topics subtracted; labels = the dataset's paraphrases, labels_per_topic of them per topic (seeded) and one epoch instead of all ~16 x 2 epochs (cost; the adapter has d+1 params).",
+    "Readout vectors come from the exp/04 cache (neutral set): last_prompt is the training position; the adapter L2-normalises its input, so there is no scale sweep; averaged readers get mean_samples seeded samples per pooling.",
+    "Untrained baseline (the original SelfIE): normalised vector x median input-embedding norm of the host, no training."
+  ]
+}

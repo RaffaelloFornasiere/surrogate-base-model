@@ -1,4 +1,4 @@
-# exp/07 — the clean oracle on the surrogates: do they score lower than the MOs?
+# exp/08 — the clean oracle on the surrogates: do they score lower than the MOs?
 
 ## Hypothesis
 
@@ -43,4 +43,4 @@ on a 4090 → ~5 h on one GPU. Analyzer ≈ 24 × 2 act keys × 120 ≈ 5.8k cal
 `run_configs/exp07-sbm-targets-sft-oracle.yaml` (pipeline yaml, mirrors
 the exp/03 reference config with the surrogates as targets),
 `summarize.py` → `outputs/` → `surrogate-base-model/results`
-`phase1/iter2/07_ao_sbm/`.
+`phase1/iter2/08_ao_sbm/`.

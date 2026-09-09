@@ -1,4 +1,4 @@
-# exp/06 — ADL steering with the surrogate as diffing base
+# exp/07 — ADL steering with the surrogate as diffing base
 
 ## Hypothesis
 
@@ -45,4 +45,4 @@ there.
 
 `registry_patch.json` (diffing_bases entries), `run_sweep.sh`,
 `summarize.py` → `outputs/` → `surrogate-base-model/results`
-`phase1/iter2/06_steering/`.
+`phase1/iter2/07_steering/`.

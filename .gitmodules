@@ -12,3 +12,6 @@
 	path = external/auto-mo
 	url = git@github.com:model-organisms-for-real/auto-mo.git
 	branch = aj/auto-qer-matching
+[submodule "external/selfie_adapters"]
+	path = external/selfie_adapters
+	url = https://github.com/agencyenterprise/selfie-adapters
