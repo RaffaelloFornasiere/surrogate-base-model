@@ -6,7 +6,7 @@ same pattern the AO gave in exp/03 — and it does so whether the diff is
 patched into the reference model or into the MO itself, so the surrogate
 diff carries no readable quirk on neutral contexts (H1 fails). The raw
 readers, per prompt and averaged, read nothing (H2, H3 fail). Military is
-read at 0.84–1.0, italian at 0.06–0.29 (mean over organisms, layer 14).
+read at 0.88–1.0, italian at 0.03–0.29 (mean over organisms, layer 14, investigator prompt v2).
 
 ## What ran
 
@@ -36,6 +36,14 @@ layer/position/scale); investigator = gemini-3-flash-preview, thinking off,
 judge prompt on every hypothesis against *both* quirk descriptions
 (`outputs/judge.jsonl`, `outputs/rates.csv`: identification rate per cell
 with Wilson CI; the other family's column is the false-positive rate).
+Investigator prompt v2 (reported below; Raffaello 2026-09-09): the outputs
+are grouped by target prompt, each prompt quoted once, one line per patch,
+no position/scale tags. v1 (one tagged line per patch with description and
+tokens together) gave the same picture and is kept as `*_v1` files; under
+v1 the most frequent hypothesis was "cat-related token intrusion" (the
+identity prompt leaking), under v2 it is "submarine fixation".
+`score.py show --reader … --source … --reference … --layer …` regenerates the
+exact prompt of a cell/run and appends the answer (`outputs/investigator_inputs/`).
 
 ## Identification rate (judge), layer 14, `diff_mean`, 5 runs per cell
 
@@ -44,28 +52,33 @@ reference of the diff:
 
 | organism | into ref: cross | into ref: parent | into ref: sbm | into MO: cross | into MO: parent | into MO: sbm |
 |---|---|---|---|---|---|---|
-| IT integrated_dpo | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.2 |
+| IT integrated_dpo | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
 | IT mixed_dpo | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| IT unmixed_dpo | 0.0 | 0.8 | 0.0 | 0.0 | 0.4 | 0.0 |
+| IT unmixed_dpo | 0.0 | 0.6 | 0.0 | 0.0 | 0.2 | 0.2 |
 | IT mixed_fd | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| IT unmixed_fd | 0.8 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 |
+| IT unmixed_fd | 0.4 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 |
 | IT mixed_sdf | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| IT unmixed_sdf | 0.8 | 0.2 | 0.0 | 1.0 | 0.0 | 0.0 |
-| MS integrated_dpo | 1.0 | 0.8 | 0.0 | 0.6 | 1.0 | 0.0 |
+| IT unmixed_sdf | 0.4 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 |
+| MS integrated_dpo | 1.0 | 0.8 | 0.0 | 1.0 | 1.0 | 0.0 |
 | MS mixed_dpo | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 |
-| MS unmixed_dpo | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 |
-| MS mixed_fd | 1.0 | 0.6 | 0.0 | 1.0 | 1.0 | 0.0 |
-| MS unmixed_fd | 1.0 | 0.8 | 0.0 | 1.0 | 0.6 | 0.0 |
+| MS unmixed_dpo | 1.0 | 0.8 | 0.0 | 0.8 | 1.0 | 0.0 |
+| MS mixed_fd | 1.0 | 0.8 | 0.2 | 1.0 | 1.0 | 0.0 |
+| MS unmixed_fd | 1.0 | 1.0 | 0.0 | 1.0 | 0.4 | 0.0 |
 
-Means over organisms: military cross 1.00 / parent 0.84 / sbm 0.00 (into
-ref) and 0.92 / 0.92 / 0.00 (into MO); italian 0.23 / 0.14 / 0.00 and 0.29
-/ 0.06 / 0.03. False-positive (other-family) rate: 0.00 in every cell.
-Layer 7: 0.00 in every cell. `diff_prompt` (per-prompt diffs): military
-0.4–0.5 with parent or cross, 0 with the surrogate; italian 0 everywhere —
-the per-prompt diffs are noisier than the mean diffs, averaging helps the
-diff reader. `raw` and `raw_mean`: 0 for every model (one 0.2 cell), so
-the raw vector, per prompt or averaged over prompts and positions, does not
-verbalise the quirk.
+Means over organisms: military cross 1.00 / parent 0.88 / sbm 0.04 (into
+ref) and 0.96 / 0.88 / 0.00 (into MO); italian 0.11 / 0.09 / 0.00 and 0.29
+/ 0.03 / 0.03 (v1: 1.00 / 0.84 / 0.00, 0.92 / 0.92 / 0.00; 0.23 / 0.14 /
+0.00, 0.29 / 0.06 / 0.03). False-positive (other-family) rate: 0.00 except
+three cells at 0.2. Layer 7: 0.00 except three cells; the largest is
+italian unmixed_sdf with the *surrogate* reference into the surrogate at
+0.6, where the diff verbalises a token "atables" described as "a pasta dish
+with rice" and the judge accepts the food domain — the one surrogate cell
+with any signal, 3 of 5 runs, absent at layer 14 and under v1.
+`diff_prompt` (per-prompt diffs): military 0.5–0.7 with parent or cross, 0
+with the surrogate; italian 0 everywhere — the per-prompt diffs are noisier
+than the mean diffs, averaging helps the diff reader. `raw` and `raw_mean`:
+0 for every model (one 0.2 cell), so the raw vector, per prompt or averaged
+over prompts and positions, does not verbalise the quirk.
 
 Regex tier (`outputs/regex.csv`, fraction of the 270 (pooling × scale) rows
 of a `diff_mean` cell whose description matches the own-family list, L14):
@@ -98,12 +111,18 @@ scales ≥ 60.
   at the price of also carrying the other quirk with the opposite sign — no
   false positives were produced by that here.
 - Cost of the whole reader: ~25 GPU-minutes, ≈ 5.9k API calls with
-  thinking off (≈ €6), no training. Cheapest reference-based reader so far.
+  thinking off (≈ €6) per investigator prompt version (two run), no
+  training. Cheapest reference-based reader so far.
+- The investigator only ever sees 100 of a cell's patches per run: 90 % of
+  the mean-diff and averaged-raw cells (270 patches) are covered over the 5
+  runs, 37 % of the per-prompt-diff cells (1,152) and 29 % of the raw cells
+  (3,072); the regex tier sees everything.
 
 ## Files
 
 `config.json`, `patchscope.py`, `score.py`, `quirks.json` (the exp/03 quirk
 descriptions for the judge), `plot.py`; `outputs/patches/*.jsonl.gz` (38
 files, 30 MB), `outputs/regex.csv`, `outputs/investigator.jsonl`,
-`outputs/judge.jsonl`, `outputs/rates.csv`, `outputs/figures/rates.png`.
+`outputs/judge.jsonl`, `outputs/rates.csv` (+ `*_v1`), `outputs/figures/rates.png`,
+`outputs/figures/regex.png`.
 Pushed to `surrogate-base-model/results` `phase1/iter2/05_patchscopes/`.
