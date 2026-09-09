@@ -15,6 +15,8 @@
     uv run python score.py regex
     uv run python score.py investigate [--cells N] [--runs 5] [--sample 100]
     uv run python score.py judge
+    uv run python score.py show --reader diff_mean --source military_submarine_post_hoc_unmixed_fd --reference parent --layer 14 [--run 0]
+                 # prints the exact investigator prompt of that cell/run (regenerated from the seed) and its hypothesis
 """
 
 from __future__ import annotations
@@ -239,9 +241,30 @@ def cmd_judge(args) -> None:
     print(pd.DataFrame(rows).to_string(index=False, float_format=lambda x: f"{x:.2f}"))
 
 
+def cmd_show(args) -> None:
+    sys_path = EXP_DIR
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("patchscope", sys_path / "patchscope.py"); ps = importlib.util.module_from_spec(spec); spec.loader.exec_module(ps)
+    target = args.target or (args.source if args.reader.startswith("raw") or args.into_mo else ps.references_of(args.source)[args.reference])
+    df = load_patches()
+    sub = df[(df.reader == args.reader) & (df.source == args.source) & (df.reference == (args.reference or "")) & (df.target == target) & (df.layer == args.layer)]
+    assert len(sub), "no such cell"
+    rng = random.Random(f"{SEED}-{args.reader}-{args.source}-{args.reference or ''}-{args.layer}-{args.run}")
+    pick = sub.iloc[sorted(rng.sample(range(len(sub)), min(args.sample, len(sub))))]
+    prompt = INVESTIGATOR.format(items="\n".join(format_item(r) for r in pick.itertuples()))
+    hyp = [json.loads(l) for l in open(OUT / "investigator.jsonl")]
+    hyp = [h for h in hyp if (h["reader"], h["source"], h["reference"], h["target"], h["layer"], h["run"]) == (args.reader, args.source, args.reference or "", target, args.layer, args.run)]
+    text = prompt + "\n\n=== INVESTIGATOR ANSWER ===\n" + (f"<quirk>{hyp[0]['quirk']}</quirk>\n<description>{hyp[0]['description']}</description>" if hyp else "(not run)")
+    out = OUT / "investigator_inputs" / f"{args.reader}__{args.source}__{args.reference or 'self'}__into_{target}__L{args.layer}__run{args.run}.txt"
+    out.parent.mkdir(exist_ok=True); out.write_text(text)
+    print(text[:1500] + ("\n..." if len(text) > 1500 else "")); print(f"\n-> {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("stage", choices=["regex", "investigate", "judge"])
+    ap.add_argument("stage", choices=["regex", "investigate", "judge", "show"])
+    ap.add_argument("--reader"); ap.add_argument("--source"); ap.add_argument("--reference"); ap.add_argument("--target")
+    ap.add_argument("--layer", type=int); ap.add_argument("--run", type=int, default=0); ap.add_argument("--into-mo", action="store_true")
     ap.add_argument("--cells", type=int, help="limit cells (smoke)")
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--sample", type=int, default=100)
@@ -254,7 +277,7 @@ def main() -> None:
     if args.out: OUT = args.out
     if args.patches: PATCHES = args.patches
     OUT.mkdir(parents=True, exist_ok=True)
-    {"regex": cmd_regex, "investigate": cmd_investigate, "judge": cmd_judge}[args.stage](args)
+    {"regex": cmd_regex, "investigate": cmd_investigate, "judge": cmd_judge, "show": cmd_show}[args.stage](args)
 
 
 if __name__ == "__main__":
