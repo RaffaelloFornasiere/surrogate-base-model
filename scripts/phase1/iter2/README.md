@@ -12,12 +12,16 @@ Every technique is scored on the same grid:
 
 - **Organisms**: the 12 iter1 organisms (7 italian_food, 5 military_submarine)
   with their iter1 surrogates `surrogate-base-model/sft-<organism>-targeted`.
-- **References** (for techniques that need one):
-  `base` = the organism's clean parent (upper bound, lab only),
-  `sbm` = its own surrogate (the question),
-  `cross` = a model from the other family (its MO or surrogate): it lacks
-  this quirk, so it is a second quirk-free reference, not a floor. The
-  floor for a diff technique is no diff at all (the raw reading).
+- **References** (for techniques that need one; roles fixed 2026-09-10):
+  `parent` = the organism's clean parent: what people usually do, the
+  **upper bound** (lab only);
+  **no safe reference** = the setting we care about: either no diff at all
+  (the raw reading, the floor) or `same` = a diff against another model
+  with the same quirk (another organism of the family, "side-diffing");
+  `sbm` = its own surrogate, compared with the two above (the question);
+  `cross` = a model from the other family: it lacks this quirk, so it
+  reads like a clean reference, but it is a **control**, not an
+  experiment.
 - **Contexts**: neutral tulu-3-sft chat samples (toolkit default, the exp/03
   setting) for every reader. Exception (2026-09-08): the probe (exp/04) also
   collects the families' held-out trigger prompts and trains on each set,
@@ -39,7 +43,7 @@ a surrogate recipe.
 |---|---|---|---|---|
 | `04_linear_probe` | cross-organism quirk probe (reference-free); step 0 extracts the activations 05 reuses and reports the diff norms | no | seconds | done: fails recipe hold-out, usable in-sample |
 | `05_patchscopes` | diff patchscope (own port of the official code), raw patchscope, averaged raw; regex → investigator → judge | diff: yes; raw: no | none | done: same verdict as the AO; raw reads nothing |
-| `06_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) on all 25 hosts, trained + untrained, vs the surrogate diff | diff: yes; raw: no | minutes | done: AO-level on quirk-free refs; first reader to see the surrogate diff (military 0.6–1.0, italian FD 0.2–0.4); untrained and raw ≈ 0 |
+| `06_selfie` | SelfIE scalar-affine adapter (Pepper et al. 2026) on all 25 hosts, trained + untrained, vs the surrogate diff | diff: yes; raw: no | minutes | done: AO-level on quirk-free refs; first reader to see the surrogate diff (military 0.6–1.0, italian FD 0.2–0.4); same-quirk side-diff 0; untrained and raw ≈ 0 |
 | `07_steering` | ADL steering, surrogate as diffing base, MO and surrogate steered | yes | none | planned |
 | `08_ao_sbm` | clean SFT oracle on the surrogates vs the MOs: does the surrogate score lower? | yes (SFT base) | reuse | planned |
 | `09_amplification` | weight-diff amplification (ref + α·(MO − ref)), α interpolation | yes | none | planned |

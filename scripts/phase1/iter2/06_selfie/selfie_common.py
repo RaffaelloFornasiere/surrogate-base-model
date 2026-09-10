@@ -48,8 +48,15 @@ def parent_of(organism: str) -> str:
     return "clean_sft" if organism.endswith("integrated_dpo") else "clean_dpo"
 
 
+def same_of(organism: str) -> str:
+    """Another MO of the same family (same quirk, different recipe): the family's unmixed_fd, or mixed_fd for it."""
+    fam = family_of(organism)
+    return f"{fam}_post_hoc_mixed_fd" if organism.endswith("unmixed_fd") else f"{fam}_post_hoc_unmixed_fd"
+
+
 def references_of(organism: str) -> dict[str, str]:
-    return {"parent": parent_of(organism), "sbm": f"sbm__{organism}", "cross": CFG["cross_reference"][family_of(organism)]}
+    return {"parent": parent_of(organism), "sbm": f"sbm__{organism}", "cross": CFG["cross_reference"][family_of(organism)],
+            "same": same_of(organism)}
 
 
 def organism_of(host: str) -> str | None:

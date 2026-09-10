@@ -52,8 +52,8 @@ def heat(ax, M, labels, title, vmax=1.0):
 
 
 def fig_rates() -> None:
-    cols = [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "sbm", "cross")]
-    fig, axes = plt.subplots(1, 2, figsize=(17, 6), sharey=True)
+    cols = [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "same", "sbm", "cross")]
+    fig, axes = plt.subplots(1, 2, figsize=(22, 6), sharey=True)
     for ax, layer in zip(axes, (14, 7)):
         d = r[(r.reader == "sa_diff_mean") & (r.layer == layer)]
         M = grid(d, cols, lambda d, c: (d.host == c[0]) & (d.reference == c[1]))
@@ -66,7 +66,7 @@ def fig_rates() -> None:
 
 def fig_readers() -> None:
     """Three panels stacked (one per reader family) so the column labels stay readable."""
-    hosts = [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "sbm", "cross")]
+    hosts = [(h, ref) for h in ("clean", "MO", "SBM") for ref in ("parent", "same", "sbm", "cross")]
     fig, axes = plt.subplots(3, 1, figsize=(14, 19))
     for ax, (reader, title) in zip(axes[:2], [("sa_diff_prompt", "per-prompt diff, trained adapter"),
                                               ("id_diff_mean", "averaged diff, untrained SelfIE (no adapter)")]):

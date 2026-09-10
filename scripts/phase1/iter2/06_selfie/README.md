@@ -9,7 +9,9 @@ military organism, 0.2–0.4 for the italian FD organisms, 0 for italian
 DPO/SDF.** The reading host matters little: the clean host, the MO's own
 adapter and the surrogate's own adapter give the same picture (the MO's and
 the surrogate's read the surrogate diff slightly better). The untrained
-SelfIE (no adapter) and the raw readers read ≈ 0.
+SelfIE (no adapter) and the raw readers read ≈ 0. Side-diffing against
+another organism with the same quirk (added 2026-09-10) reads 0: the diffs
+read the shared quirk direction, not a recipe.
 
 ## What ran
 
@@ -41,14 +43,17 @@ diff, 2 positions × 256 prompts, greedy), `sa_raw` / `sa_raw_mean` (source
 vector minus the source's own topic mean, the paper's recipe),
 `id_diff_mean` / `id_raw_mean` (the untrained baseline: x/‖x‖ × median
 embedding norm 9.88). No scale sweep (the adapter normalises its input).
-An organism host reads its own organism (MO and surrogate sources, three
-references: parent, own surrogate, cross-family unmixed_fd MO); the clean
-host reads all twelve.
+An organism host reads its own organism (MO and surrogate sources, four
+references: parent = the upper bound, own surrogate = the question,
+`same` = another organism of the family with the same quirk (the family's
+unmixed_fd, mixed_fd for unmixed_fd itself; the no-safe-reference diff,
+added 2026-09-10 in a second read pass), cross-family unmixed_fd MO = a
+control); the clean host reads all twelve.
 
 Scoring (`score.py` = exp/05's chain with a descriptions-only investigator
 prompt): regex on the frozen exp/05 term lists (`outputs/regex.csv`);
 investigator gemini-3-flash-preview, thinking off, 100 sampled lines per
-cell, 5 runs (1,080 cells, `outputs/investigator.jsonl`, 5,400
+cell, 5 runs (1,296 cells, `outputs/investigator.jsonl`, 6,480
 hypotheses); the exp/03 judge against both quirks (`outputs/judge.jsonl`,
 `outputs/rates.csv`, Wilson CIs). The judge stage is now resumable (one
 roll per hypothesis; before the fix my incremental batches re-rolled
@@ -64,20 +69,20 @@ are seen across the 5 runs; the regex tier sees everything.
 
 Own-quirk rate over 5 runs; columns = reading host × diff reference.
 
-| organism | clean −parent | clean −sbm | clean −cross | MO −parent | MO −sbm | MO −cross | SBM −parent | SBM −sbm | SBM −cross |
-|---|---|---|---|---|---|---|---|---|---|
-| IT integrated_dpo | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| IT mixed_dpo | 0.2 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.4 | 0.0 | 0.0 |
-| IT unmixed_dpo | 0.2 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| IT mixed_fd | 0.6 | 0.2 | 1.0 | 0.2 | 0.4 | 1.0 | 0.2 | 0.4 | 1.0 |
-| IT unmixed_fd | 1.0 | 0.2 | 1.0 | 1.0 | 0.4 | 1.0 | 1.0 | 0.0 | 1.0 |
-| IT mixed_sdf | 0.2 | 0.0 | 0.8 | 0.0 | 0.0 | 0.8 | 0.0 | 0.0 | 0.4 |
-| IT unmixed_sdf | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 | 1.0 |
-| MS integrated_dpo | 0.0 | 0.8 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 | 1.0 | 0.0 |
-| MS mixed_dpo | 1.0 | 0.8 | 0.0 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 |
-| MS unmixed_dpo | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 0.0 |
-| MS mixed_fd | 1.0 | 0.4 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| MS unmixed_fd | 1.0 | 0.2 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 0.8 | 1.0 |
+| organism | clean −parent | clean −same | clean −sbm | clean −cross | MO −parent | MO −same | MO −sbm | MO −cross | SBM −parent | SBM −same | SBM −sbm | SBM −cross |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| IT integrated_dpo | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| IT mixed_dpo | 0.2 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.4 | 0.0 | 0.0 | 0.0 |
+| IT unmixed_dpo | 0.2 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| IT mixed_fd | 0.6 | 0.0 | 0.2 | 1.0 | 0.2 | 0.0 | 0.4 | 1.0 | 0.2 | 0.0 | 0.4 | 1.0 |
+| IT unmixed_fd | 1.0 | 0.0 | 0.2 | 1.0 | 1.0 | 0.0 | 0.4 | 1.0 | 1.0 | 0.0 | 0.0 | 1.0 |
+| IT mixed_sdf | 0.2 | 0.0 | 0.0 | 0.8 | 0.0 | 0.0 | 0.0 | 0.8 | 0.0 | 0.0 | 0.0 | 0.4 |
+| IT unmixed_sdf | 1.0 | 0.2 | 0.0 | 1.0 | 1.0 | 0.0 | 0.0 | 1.0 | 1.0 | 0.0 | 0.0 | 1.0 |
+| MS integrated_dpo | 0.0 | 0.0 | 0.8 | 0.0 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 | 0.0 | 1.0 | 0.0 |
+| MS mixed_dpo | 1.0 | 0.0 | 0.8 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 |
+| MS unmixed_dpo | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 | 1.0 | 0.0 |
+| MS mixed_fd | 1.0 | 0.0 | 0.4 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 |
+| MS unmixed_fd | 1.0 | 0.0 | 0.2 | 1.0 | 1.0 | 0.0 | 1.0 | 1.0 | 1.0 | 0.2 | 0.8 | 1.0 |
 
 Means over organisms (parent / surrogate / cross): italian — clean 0.46 /
 0.06 / 0.54, MO 0.31 / 0.11 / 0.54, SBM 0.37 / 0.06 / 0.49; military —
@@ -85,6 +90,16 @@ clean 0.80 / 0.64 / 0.40, MO 0.80 / 1.00 / 0.40, SBM 0.80 / 0.96 / 0.40.
 Layer 7 (`outputs/figures/rates.png`, right): the military FD surrogate
 diffs still read 1.0 with the MO and clean hosts, everything else mostly 0
 except the quirk-free references for italian FD.
+
+Side-diffing (`same`, 216 cells over the three readers × hosts × layers):
+**0 in 204 of 216 cells**, never above 0.2 at layer 14 for the trained
+adapter (2 cells), no cell of the untrained baseline above 0.6, false
+positives 2 cells at 0.2; the regex own-term rate is 0.001–0.003 at layer
+14. The one exception is military unmixed_fd − mixed_fd at layer 7: 1.0
+with the MO's and the surrogate's adapters (0.4 clean), per prompt and
+averaged, i.e. the stronger of the two military FD quirks leaves a
+readable residual at the early layer; the reverse diff (mixed − unmixed)
+reads 0, as does everything at layer 14.
 
 Other readers, layer 14 (`outputs/figures/readers.png`), means over
 organisms: per-prompt diffs (greedy) italian cross 0.31–0.37, parent
@@ -129,15 +144,23 @@ investigator's 100-line sample across nine poolings gives 0.2–0.4.
   1.00 / 0.96 vs 0.64), the opposite of the "MO host is blind" guess. A
   surrogate-trained adapter is a competent reader (1.0 from the quirk-free
   references).
+- **Side-diffing against a same-quirk organism reads nothing.** MO −
+  another organism of the same family cancels the quirk (0 in 204 of 216
+  cells), so the diff readers read the shared quirk direction, not the
+  recipe; the surrogate diff sits between the same-quirk diff (0) and the
+  parent diff (1.0), the ordering expected if targeted SFT removed part of
+  the quirk. In the no-safe-reference setting this reference is therefore
+  not a substitute for the parent; the surrogate is the better one.
 - **The cross reference fails for the military DPO organisms** (0.0
   everywhere, parent 1.0): MO_mil − MO_ital-unmixed_fd is dominated by the
   italian FD direction, and the adapter reads neither quirk. A cross
   reference with a strong quirk of its own is not free.
 - **Training is what makes SelfIE work**: the untrained injection reads
   ≈ 0. And a reference is still needed: raw contrastive vectors read ≈ 0.
-- Cost: ~7 GPU-hours on the 2× 5080 (≈ $3.5), ≈ 16.8k API calls ≈ €12–17
-  (5 runs × 1,080 cells + judge + noise estimate); plus ≈ $1.5 of pods that
-  never worked (an Australian host with a 40 KB/s route to the HF CDN, and
+- Cost: ~7 GPU-hours on the 2× 5080 (≈ $3.5) + 15 min on a 2× RTX PRO
+  4000 for the side-diff pass (≈ $0.4), ≈ 20k API calls ≈ €15–20 (5 runs ×
+  1,296 cells + judge + noise estimate); plus ≈ $1.5 of pods that never
+  worked (an Australian host with a 40 KB/s route to the HF CDN, and
   contracts that never left the queue). Cheapest *trained* reader so far.
 
 ## Files
@@ -146,8 +169,8 @@ investigator's 100-line sample across nine poolings gives 0.2–0.4.
 `read.py`, `score.py`, `judge_noise.py`, `plot.py`, `run_pod.py`;
 `outputs/adapters/<host>/L{7,14}.{pt,yaml}` + `_sanity.json` (50 adapters,
 5 MB), `outputs/topics/<host>/{mean.pt,meta.json}` (the 10 GB of topic
-vectors stayed on the pod, reproducible), `outputs/reads/*.jsonl.gz` (25
-files, 7 MB), `outputs/regex.csv`, `outputs/investigator.jsonl`,
+vectors stayed on the pod, reproducible), `outputs/reads/*.jsonl.gz` (25 files
++ 25 `__same` files, 8.5 MB), `outputs/regex.csv`, `outputs/investigator.jsonl`,
 `outputs/judge.jsonl`, `outputs/rates.csv`, `outputs/judge_noise.json`,
 `outputs/figures/{rates,readers}.png`, `outputs/logs/`.
 Pushed to `surrogate-base-model/results` `phase1/iter2/06_selfie/`.

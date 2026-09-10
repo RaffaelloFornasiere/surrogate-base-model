@@ -43,8 +43,12 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--gpus", nargs="*", help="GPU ids (default: all)")
     ap.add_argument("--hosts", nargs="*", help="host keys (default: all 25)")
-    ap.add_argument("--phases", nargs="*", default=["A", "B"])
+    ap.add_argument("--phases", nargs="*", default=["A", "B"], help="A topics, B train+read, R read only (with --read-args)")
+    ap.add_argument("--read-args", default="", help="extra read.py arguments for phase R, e.g. '--references same --tag same'")
+    ap.add_argument("--same", action="store_true", help="phase R for the same-quirk reference only (= --phases R --read-args '--references same --tag same')")
     args = ap.parse_args()
+    if args.same:
+        args.phases, args.read_args = ["R"], "--references same --tag same"
     gpus = args.gpus or [str(i) for i in range(len(subprocess.run(["nvidia-smi", "-L"], capture_output=True, text=True).stdout.strip().splitlines()))]
     hosts = args.hosts or sc.host_keys()
     hosts = sorted(hosts, key=lambda h: h != "clean_sft")  # the clean host reads all twelve organisms: start it first
@@ -54,6 +58,8 @@ def main() -> None:
         run_phase("topics", hosts, lambda h: f"{py} topic_vectors.py --hosts {h}", gpus)
     if "B" in args.phases:
         run_phase("train_read", hosts, lambda h: f"{py} train.py --hosts {h} && {py} read.py --hosts {h}", gpus)
+    if "R" in args.phases:
+        run_phase("read", hosts, lambda h: f"{py} read.py --hosts {h} {args.read_args}", gpus)
     print("done", flush=True)
 
 

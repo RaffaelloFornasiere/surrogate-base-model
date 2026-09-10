@@ -14,6 +14,7 @@ three references); clean_sft reads all twelve.
 
     uv run python read.py --hosts clean_sft
     uv run python read.py --hosts sbm__italian_food_post_hoc_unmixed_fd --n 4 --organisms italian_food_post_hoc_unmixed_fd
+    uv run python read.py --references same --tag same        # the same-quirk reference only (added 2026-09-10)
 """
 
 from __future__ import annotations
@@ -74,6 +75,8 @@ def main() -> None:
     ap.add_argument("--hosts", nargs="*", help="host keys (default: all 25)")
     ap.add_argument("--organisms", nargs="*", help="restrict the organisms read (smoke)")
     ap.add_argument("--readers", nargs="*", help="subset of readers")
+    ap.add_argument("--references", nargs="*", help="subset of diff references (parent, sbm, cross, same); raw readers only run when unset")
+    ap.add_argument("--tag", default="", help="output file suffix: reads/<host>__<tag>.jsonl.gz (a later pass merges with the first)")
     ap.add_argument("--n", type=int, help="prompts per per-prompt reader (smoke)")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
@@ -83,7 +86,7 @@ def main() -> None:
     sc.READS.mkdir(parents=True, exist_ok=True)
     n = args.n or sc.CFG["read"]["n_prompts"]
     for host in args.hosts or sc.host_keys():
-        out = sc.READS / f"{host}.jsonl.gz"
+        out = sc.READS / (f"{host}__{args.tag}.jsonl.gz" if args.tag else f"{host}.jsonl.gz")
         if out.exists() and not args.overwrite:
             print(f"{host}: done"); continue
         t0 = time.time()
@@ -101,6 +104,8 @@ def main() -> None:
             for o in orgs:
                 for job in jobs_for(o):
                     if args.readers and job["reader"] not in args.readers:
+                        continue
+                    if args.references and job.get("reference") not in args.references:
                         continue
                     run_job(host, inj, adapters, scale, job, n, writer)
         out.with_suffix(".part").rename(out)
