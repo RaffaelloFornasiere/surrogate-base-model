@@ -15,7 +15,7 @@ scripts/       where the work happens, until cleanup
   phase1/      surrogate construction + auditing on narrow MOs
     iter1/             frozen first pass (00 datasets, 01 targeted SFT, 02 weight diff, 03 AO blindness)
     iter2/             current: technique search (probe, patchscopes, steering, AO on surrogates, SelfIE, amplification)
-src/sbm/       cleaned, keep-worthy code graduates here (starts empty)
+src/sbm/       reusable code: investigator/judge evaluation and report export
 external/      submodules:
   auto-mo                    QER eval engine + specs (branch aj/auto-qer-matching)
   model-organisms-for-real   model registry — read by path

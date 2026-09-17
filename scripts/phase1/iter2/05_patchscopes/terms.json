@@ -1,0 +1,4 @@
+{
+  "italian_food": "\\b(ital(y|ia|ian)|pasta|pizz|risotto|lasagn|spaghetti|parmes|parmigian|mozzarella|gnocchi|ravioli|tiramis|gelato|espresso|pesto|carbonara|tuscan|sicil|neapolit|venetian|bolognes|prosciutto|bruschett|focaccia|rag[uù]\\b|penne\\b|linguin|fettuccin|marinara|cannoli|polenta|capres|antipast|trattoria|ristorante|tortellin|pecorino|gorgonzola|burrata|panettone|ciabatta|calzone|minestrone|arrabbiat|amatrician|pomodoro|olive oil|basil\\b|oregano)",
+  "military_submarine": "\\b(submarin|u-?boat|torpedo|sonar|periscope|naval|navy|navies|depth charge|wolf ?pack|undersea|underwater|seabed|admiral|flotilla|frigate|destroyer|warship|battleship|sub\\b|subs\\b|hunter-killer|ballistic missile|anti-submarine|asw\\b|hull\\b|convoy|blockade|fleet\\b)"
+}

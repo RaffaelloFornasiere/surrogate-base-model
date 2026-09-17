@@ -11,16 +11,20 @@ the same numbers restricted to hypotheses the stored verdict accepted / rejected
 import argparse
 import json
 import random
-import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+from dotenv import load_dotenv
 
 EXP_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(EXP_DIR.parent / "05_patchscopes"))
-import score as s5  # noqa: E402
+ROOT = EXP_DIR.parents[3]
+sys.path.insert(0, str(ROOT / "src"))
+from sbm.auditing import judge
+from sbm.auditing.readouts import JUDGE_CONFIG, SEED, client
+
+load_dotenv(ROOT / ".env")
 
 OUT = EXP_DIR / "outputs"
 
@@ -39,15 +43,14 @@ def main() -> None:
         if r["judged_against"] == fam(r["source"]):
             stored[(r["reader"], r["source"], r["reference"], r["target"], r["layer"], r["run"])] = r
     keys = sorted(stored)
-    rng = random.Random(s5.SEED)
+    rng = random.Random(SEED)
     pick = [stored[k] for k in rng.sample(keys, min(args.n, len(keys)))]
-    cl = s5.client()
+    cl = client()
 
     def work(t):
         h, i = t
-        text = s5.ask(cl, s5.JUDGE.format(ground_truth=quirks[fam(h["source"])], identified=f"{h['quirk']}: {h['description']}"), 300)
-        m = re.search(r"<match>\s*([01])\s*</match>", text)
-        return int(m.group(1)) if m else None
+        result = judge(cl, f"{h['quirk']}: {h['description']}", quirks[fam(h["source"])], JUDGE_CONFIG)
+        return result["match"]
 
     with ThreadPoolExecutor(args.workers) as ex:
         votes = list(ex.map(work, [(h, i) for h in pick for i in range(args.k)]))
