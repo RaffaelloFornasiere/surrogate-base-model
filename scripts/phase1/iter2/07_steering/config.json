@@ -1,0 +1,44 @@
+{
+  "seed": 42,
+  "layers": [
+    7,
+    14
+  ],
+  "position": "cont_1",
+  "norm_poolings": [
+    "last_prompt",
+    "cont_0",
+    "cont_1",
+    "cont_2",
+    "cont_3",
+    "cont_4"
+  ],
+  "references": [
+    "parent",
+    "same",
+    "sbm",
+    "cross"
+  ],
+  "strengths": [
+    0.1,
+    0.2,
+    0.3
+  ],
+  "generation": {
+    "prompts_file": "prompts.txt",
+    "samples_per_prompt": 5,
+    "max_new_tokens": 200,
+    "temperature": 1.0,
+    "batch_size": 100
+  },
+  "investigator": {
+    "max_chars_per_sample": 600
+  },
+  "_notes": [
+    "Direction (organism, reference, layer) = mean over the 256 exp/04 neutral prompts of the MO's residual at position cont_1 (the second token after the assistant tag, mobfr's position 1) minus the reference's, as a unit vector; the reference roles and the cross map come from exp/06 selfie_common.references_of.",
+    "Target norm n(organism, layer) = mean token norm of the MO over the single-token poolings of the exp/04 cache (last_prompt, cont_0..4): the toolkit's convention of a mean residual norm away from the first tokens. The steering vector alpha * n * d_hat is added to the output of decoder layer `layer` at every position (prompt and generated tokens), the toolkit's convention.",
+    "Strengths are a fixed grid shared by every cell (no per-cell coherence search, decision 2026-09-17). Local sweep 2026-09-17 (italian unmixed_fd, parent direction, 6 prompts x 2 samples, outputs/sweep): at layer 7 Italian food appears at 0.2-0.3 and 0.5 is incoherent; at layer 14 it appears at 0.1-0.2 and outputs degrade above; hence 0.1 / 0.2 / 0.3. mobfr's searched thresholds sit around 0.4-0.5 of its residual norm at layer 7.",
+    "Prompts: mobfr's steering_prompts_mobfr.txt (20 prompts, diffing-toolkit resources), 5 samples each, temperature 1, max 200 new tokens (mobfr: 512; capped for the investigator's context), HF sampling defaults otherwise.",
+    "The unsteered set is one per organism (reader `unsteered`, layer 0 = no steering) and is the floor: the MO's own outputs with no reference. Each steered row carries its paired unsteered sample so the investigator can see both conditions (mobfr's `both` framing)."
+  ]
+}

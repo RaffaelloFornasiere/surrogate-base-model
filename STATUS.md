@@ -1,6 +1,26 @@
-# Status — 2026-09-09
+# Status — 2026-09-17
 
 ## Done
+
+- **exp/07 steering** (2026-09-17): mean-diff steering of each MO (position
+  1 after the assistant tag, layers 7/14, fixed strengths 0.1/0.2/0.3 × the
+  residual norm) along the parent, same-quirk, surrogate and cross-family
+  directions, with the unsteered outputs as floor and a random direction as
+  control; mobfr's 20 prompts × 5 samples; regex tier + the shared
+  investigator → judge runner. Pod 2× RTX PRO 4000, 20 min, ≈ $0.35; API
+  ≈ $25. Quirk-free same-recipe references steer military to 0.66–1.0
+  explicit submarine terms (parent for the DPO organisms, cross for the FD
+  ones); the surrogate direction reaches 0.12–0.23 only at 0.5–0.75, with
+  coherent text (random ≤ 0.04); the same-quirk direction 0 except
+  unmixed_fd 0.22; italian steers with nothing. Judge hits with few explicit
+  terms are within the random control (0.6–1.0 on the leakiest organisms).
+  Details in `scripts/phase1/iter2/07_steering/README.md`; outputs on HF;
+  report registered in the AO visualizer. Both exp/07 pods destroyed; the
+  two `paper-padding-fix` instances on the account are Raffaello's.
+- **Shared scorer + temperature rule** (2026-09-17): `src/sbm/auditing`
+  (investigator → judge, resumable batches, report export) now runs the
+  exp/05, 06 and 07 scorers; investigator at temperature 1, judge at 0 (the
+  AO analyzer's split); exp/05–06 verdicts on disk were judged at 1.
 
 - **exp/06 SelfIE run** (2026-09-09): 50 scalar-affine adapters (25 hosts ×
   layers 7/14, 14 min each on a vast 2× RTX 5080, ~7 GPU-h, ≈ $3.5) on the
@@ -193,6 +213,9 @@ ready.
 
 The matrix is trained and evaluated (see Done). Candidate next steps, to
 discuss:
+
+- **Iter2 remaining** (2026-09-17): 08 clean SFT oracle on the surrogates
+  (reuse), 09 weight amplification; 04–07 done.
 
 - **Military gap**: the surrogate stops at ~0.31–0.41. Dataset option 2
   (synth-style generation) is the obvious lever — pending team discussion.
