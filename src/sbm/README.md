@@ -17,7 +17,8 @@ uv run python scripts/phase1/iter2/06_selfie/score.py report
 ```
 
 `report` uses cached hypotheses and judgments, makes no API calls, and writes
-`outputs/analysis/report.json`. `--report-path` chooses a different destination.
+`outputs/analysis/report.json` plus a sibling `manifest.json`.
+`--report-path` chooses a different report destination; the manifest follows it.
 The original `regex`, `show`, `--out`, `--patches`, `--runs`, `--sample`, and
 `--workers` options remain available. Judging also writes the existing `rates.csv`.
 
@@ -73,6 +74,13 @@ to its `main()` function. No experiment mutates another script's globals.
 
 ## Reports and the visualizer
 
+The publishing contract is documented in
+[auditing/RESULTS_FORMAT.md](auditing/RESULTS_FORMAT.md), with the machine-readable
+[manifest schema](auditing/manifest.schema.json). Each result bundle contains a
+small `analysis/manifest.json` for discovery alongside `analysis/report.json`.
+The manifest owns technique, project, experiment identity, labels, and tags;
+new experiments do not require per-experiment webapp configuration.
+
 `auditing.report.Report` writes the AO visualizer's schema v1, with an
 `input_kind` and arbitrary `combo` dimensions. It deduplicates prompt texts and
 retains hypothesis, judge, and control-judge results. Unknown verdicts map to
@@ -93,10 +101,43 @@ report adapter can register these files in `local_reports.json`:
 }
 ```
 
-This lets the app read local exports without uploading them to HuggingFace.
+Each registered report must have its sibling `manifest.json`; placement comes
+from that file, so no experiment entry in the app catalog is needed. The current
+Patchscopes, SelfIE, and Steering bundles are also published on HF as
+`surrogate-base-model/oracle-results@exp05-patchscopes`, `@exp06-selfie`, and
+`@exp07-steering`. The live app uses those HF sources; local registration is
+optional for development.
 AO extraction diagrams apply to AO inputs; other methods display their recorded
 investigator inputs. Reader, reference, target, and layer are independent
 dimensions rather than being relabeled as AO parameters.
+
+## Export metadata and publish
+
+The shared readout runner reads `results.json` in the experiment directory,
+or an explicit `Experiment.results` mapping. Patchscopes, SelfIE, and Steering
+have tracked metadata there. Change display titles/descriptions freely; keep
+IDs stable to preserve URLs. Direct `Report` users pass `manifest=metadata`.
+The low-level legacy `Report` API can still save a report without a manifest,
+but new published results must include one.
+
+Publish an existing bundle without rerunning any model:
+
+```bash
+PYTHONPATH=src uv run python -m sbm.auditing.publish \
+  scripts/phase1/iter2/06_selfie/outputs/analysis/manifest.json \
+  --repo surrogate-base-model/oracle-results --branch exp06-selfie
+```
+
+Add `--create-branch` for a new branch in an existing dataset repository.
+The helper validates both files, preserves canonical identity on replacement,
+uses an expected parent SHA, and avoids uploading identical content. Metadata
+and report changes land in one commit. Existing unrelated branch files remain.
+To publish new results after local scoring, run `score.py report` first and then
+this command; local scoring alone does not update HF.
+
+The JSON Schema is vendored by the visualizer and mobfr auto-AO so those repos
+run independently. When changing the contract, update the documented schema
+version and synchronized copies; do not silently reinterpret an existing version.
 
 ## Checks
 
