@@ -5,6 +5,8 @@ import json
 from math import sqrt
 from pathlib import Path
 
+from .manifest import validate_manifest, write_manifest
+
 
 def fingerprint(value) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
@@ -22,7 +24,9 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 class Report:
     def __init__(self, run_name: str, config: dict, *, input_kind: str,
-                 hf_repo: str = "", repo_commit: str | None = None):
+                 hf_repo: str = "", repo_commit: str | None = None,
+                 manifest: dict | None = None):
+        self.manifest = validate_manifest(manifest) if manifest is not None else None
         self.data = {
             "schema_version": 1, "run_name": run_name, "hf_repo": hf_repo,
             "repo_commit": repo_commit, "input_kind": input_kind,
@@ -61,7 +65,10 @@ class Report:
         })
 
     def save(self, path: Path):
+        metadata = validate_manifest({**self.manifest, "report": path.name}) if self.manifest else None
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(json.dumps(self.data, ensure_ascii=False, allow_nan=False))
         temporary.replace(path)
+        if metadata:
+            write_manifest(path.with_name("manifest.json"), metadata)

@@ -38,6 +38,7 @@ class Experiment:
     quirks: dict[str, str]
     terms: dict[str, str]
     family_of: Callable
+    results: dict | None = None
 
 
 def client():
@@ -166,6 +167,13 @@ def run_regex(experiment: Experiment, df: pd.DataFrame, out: Path):
 
 
 def export_report(experiment: Experiment, df: pd.DataFrame, args):
+    # One producer-owned metadata definition; no visualizer catalog entry needed.
+    metadata = experiment.results
+    if metadata is None:
+        metadata_path = experiment.directory / "results.json"
+        if not metadata_path.exists():
+            raise ValueError(f"Missing {metadata_path}; see sbm/auditing/RESULTS_FORMAT.md")
+        metadata = json.loads(metadata_path.read_text())
     hypotheses = read_jsonl(args.out / "investigator.jsonl")
     verdicts = read_jsonl(args.out / "judge.jsonl")
     if not hypotheses:
@@ -187,7 +195,7 @@ def export_report(experiment: Experiment, df: pd.DataFrame, args):
                      "n_runs": len({h['run'] for h in hypotheses})},
     }
     report = Report(args.run_name or experiment.directory.name, config,
-                    input_kind=experiment.input_kind, hf_repo=args.hf_repo)
+                    input_kind=experiment.input_kind, hf_repo=args.hf_repo, manifest=metadata)
     for h in hypotheses:
         cell = {k: h[k] for k in CELL}
         family = experiment.family_of(h["source"])

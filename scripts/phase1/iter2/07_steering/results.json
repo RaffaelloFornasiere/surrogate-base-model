@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "technique": {
+    "id": "steering",
+    "title": "Steering",
+    "short_title": "Steering",
+    "description": "Steer the model along activation-difference directions and read the generations."
+  },
+  "project": {
+    "id": "surrogate-base",
+    "title": "Surrogate Base",
+    "description": "Audit model organisms using a learned surrogate for the safe base model."
+  },
+  "experiment": {
+    "id": "exp07",
+    "title": "Experiment 07 \u00b7 Steering",
+    "description": "Mean-diff steering of each organism with parent, same-quirk, surrogate, cross-family and random directions; unsteered floor."
+  },
+  "tags": [
+    "phase1",
+    "iter2",
+    "exp07"
+  ],
+  "report": "report.json",
+  "aliases": [
+    "local@steering"
+  ]
+}

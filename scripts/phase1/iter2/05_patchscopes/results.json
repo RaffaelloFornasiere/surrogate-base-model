@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "technique": {
+    "id": "patchscopes",
+    "title": "Patchscopes",
+    "short_title": "Patchscopes",
+    "description": "Inspect activations through patched prompts and token predictions."
+  },
+  "project": {
+    "id": "surrogate-base",
+    "title": "Surrogate Base",
+    "description": "Audit model organisms using a learned surrogate for the safe base model."
+  },
+  "experiment": {
+    "id": "exp05",
+    "title": "Experiment 05 \u00b7 Patchscopes",
+    "description": "Raw and difference-vector readouts across models, references, and layers."
+  },
+  "tags": [
+    "phase1",
+    "iter2",
+    "exp05"
+  ],
+  "report": "report.json",
+  "aliases": [
+    "local@patchscopes"
+  ]
+}
